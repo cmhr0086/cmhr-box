@@ -26,6 +26,7 @@ class CmhrServiceTest {
         override var subscriptionUpdatedAt: Long = 0L
         override var expiryReference: String? = null
         override var seenAnnouncement: String? = null
+        override var cachedAnnouncement: String? = null
     }
 
     /** Body lines are node names; selection maps by name like upstream ProfileReplacement. */
@@ -66,10 +67,10 @@ class CmhrServiceTest {
     private lateinit var store: MemoryStore
     private lateinit var engine: FakeEngine
 
-    private fun service(subscription: Boolean = true, control: Boolean = true) = CmhrService(
+    private fun service(subscription: Boolean = true, control: Boolean = true, announcement: Boolean = false) = CmhrService(
         CmhrConfig(
             subscriptionEndpoint = if (subscription) "https://$host/subscription" else "",
-            announcementEndpoint = "",
+            announcementEndpoint = if (announcement) "https://$host/announcement" else "",
             appControlEndpoint = if (control) "https://$host/control" else "",
             versionCode = 100,
             defaultUpdateUrl = "https://fallback.example.invalid",
@@ -204,6 +205,27 @@ class CmhrServiceTest {
         assertFalse(service.isUnread(first))
         assertTrue(service.isUnread(first.copy(content = "Body, edited")))
         assertTrue(service.isUnread(first.copy(updatedAt = "2026-10-29 08:00:00")))
+    }
+
+    @Test fun announcementIsCachedKeptOnFailureAndClearedWhenWithdrawn() = runBlocking {
+        val service = service(announcement = true)
+        assertNull(service.cachedAnnouncement())
+
+        FakeHttp.routes["$host/announcement"] = FakeHttp.Response(code = 503, body = "")
+        assertEquals(AnnouncementResult.Failed, service.announcement())
+
+        FakeHttp.routes["$host/announcement"] = FakeHttp.Response(
+            body = """{"enabled":true,"title":"Notice","content":"Body","updatedAt":"2026-10-29 10:00:00"}""")
+        val shown = AnnouncementResult.Shown(Announcement("Notice", "Body", "2026-10-29 10:00:00"))
+        assertEquals(shown, service.announcement())
+        assertEquals(shown.item, service.cachedAnnouncement())
+
+        FakeHttp.routes["$host/announcement"] = FakeHttp.Response(code = 503, body = "")
+        assertEquals(shown, service.announcement())
+
+        FakeHttp.routes["$host/announcement"] = FakeHttp.Response(body = """{"enabled":false}""")
+        assertEquals(AnnouncementResult.None, service.announcement())
+        assertNull(service.cachedAnnouncement())
     }
 
     @Test fun refreshIsDueOnlyForActivatedSubscriptionsPastTheInterval() {

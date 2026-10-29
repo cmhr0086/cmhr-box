@@ -17,9 +17,9 @@ import android.widget.TextView
 import com.cmhr.box.AppGraph
 import com.cmhr.box.R
 import com.cmhr.box.core.Announcement
+import com.cmhr.box.core.AnnouncementResult
 import com.cmhr.box.core.CmhrException
 import com.cmhr.box.core.NodeDisplay
-import com.cmhr.box.core.SubscriptionExpiryProgress
 import com.cmhr.box.core.SubscriptionStatus
 import com.cmhr.box.engine.api.EngineState
 import com.cmhr.box.engine.api.Node
@@ -56,7 +56,10 @@ class HomeFragment : BaseFragment() {
     private var nodes: List<Node> = emptyList()
     private var selectedId: String? = null
     private var routing = RoutingMode.BYPASS_MAINLAND
-    private var announcement: Announcement? = null
+    // The cached copy shows at once; the card keeps its place while the fresh one loads.
+    private var announcement: Announcement? = AppGraph.cmhr.cachedAnnouncement()
+    /** Outcome of the last fetch this session; null while the first one is in flight. */
+    private var announcementResult: AnnouncementResult? = null
     private var announcementShown = false
     private var connecting = false
     private var accessJob: Job? = null
@@ -184,7 +187,10 @@ class HomeFragment : BaseFragment() {
 
         // Announcement in its own card at the bottom; tap reads it in full.
         announcementCard = SummaryCard(context).apply {
-            setOnClickListener { announcement?.let { openAnnouncement(it) } }
+            setOnClickListener {
+                // Without a copy to show, a tap retries the fetch.
+                announcement?.let { openAnnouncement(it) } ?: loadAnnouncement()
+            }
         }
         root.addView(announcementCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 68, 16f, 12f, 16f, 0f))
         root.setPadding(0, 0, 0, AndroidUtilities.dp(24f))
@@ -202,7 +208,7 @@ class HomeFragment : BaseFragment() {
             reload()
             if (cmhr.refreshDue()) refreshQuietly()
         }
-        if (announcement == null) loadAnnouncement()
+        loadAnnouncement()
         checkAccess()
         if (cmhr.subscriptionEnabled && !cmhr.isActivated && !invitePrompted) {
             invitePrompted = true
@@ -280,11 +286,13 @@ class HomeFragment : BaseFragment() {
     private fun loadAnnouncement() {
         if (announcementJob?.isActive == true) return
         announcementJob = scope?.launch {
-            // A failed fetch (null) never replaces one already loaded.
-            val item = cmhr.announcement() ?: return@launch
-            announcement = item
+            val result = cmhr.announcement()
+            announcementResult = result
+            // Failed only when there is no cached copy either; then keep whatever is on screen.
+            val item = (result as? AnnouncementResult.Shown)?.item
+            if (result !is AnnouncementResult.Failed) announcement = item
             render()
-            if (cmhr.isUnread(item) && !announcementShown) {
+            if (item != null && cmhr.isUnread(item) && !announcementShown) {
                 announcementShown = true
                 openAnnouncement(item)
             }
@@ -470,11 +478,18 @@ class HomeFragment : BaseFragment() {
 
         val item = announcement
         announcementCard?.apply {
-            visibility = if (item != null) View.VISIBLE else View.GONE
-            if (item != null) bind(
+            // Always laid out when the service is configured, so loading never shifts the page.
+            visibility = if (cmhr.announcementEnabled) View.VISIBLE else View.GONE
+            isEnabled = item != null || announcementResult == AnnouncementResult.Failed
+            bind(
                 context.getString(R.string.cmhr_section_announcement),
-                item.title.ifBlank { item.content.trim().lineSequence().firstOrNull { it.isNotBlank() }.orEmpty() },
-                if (cmhr.isUnread(item)) context.getString(R.string.cmhr_unread) else "",
+                when {
+                    item != null -> item.title.ifBlank { item.content.trim().lineSequence().firstOrNull { it.isNotBlank() }.orEmpty() }
+                    announcementResult == AnnouncementResult.None -> context.getString(R.string.cmhr_no_announcement)
+                    announcementResult == AnnouncementResult.Failed -> context.getString(R.string.cmhr_announcement_failed)
+                    else -> context.getString(R.string.cmhr_loading)
+                },
+                if (item != null && cmhr.isUnread(item)) context.getString(R.string.cmhr_unread) else "",
                 Theme.key_windowBackgroundWhiteBlueText4,
             )
         }
@@ -498,7 +513,7 @@ class HomeFragment : BaseFragment() {
         perAppRow?.bindRow(context.getString(R.string.cmhr_per_app), "", TR.drawable.msg_folders, divider = cmhr.subscriptionEnabled)
         subscriptionRow?.apply {
             visibility = if (cmhr.subscriptionEnabled) View.VISIBLE else View.GONE
-            bindRow(context.getString(R.string.cmhr_section_subscription), context.subscriptionSummary(), TR.drawable.msg_calendar2, divider = false)
+            bindRow(context.getString(R.string.cmhr_section_subscription), "", TR.drawable.msg_calendar2, divider = false)
         }
     }
 
@@ -507,21 +522,6 @@ class HomeFragment : BaseFragment() {
         setTextAndValueAndIcon(text, value, icon, divider)
         valueTextView.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteValueText))
         background = Theme.getSelectorDrawable(false)
-    }
-
-    /** "120 GB left · 23 days" in the row; the subscription page has the full numbers. */
-    private fun Context.subscriptionSummary(): String {
-        if (!cmhr.isActivated) return getString(R.string.cmhr_state_not_activated)
-        val usage = cmhr.usage()
-        val expiry = cmhr.expiryProgress()
-        val traffic = if (usage.total > 0L) getString(R.string.cmhr_summary_traffic_left, formatBytes(usage.remaining.coerceAtLeast(0L))) else null
-        val validity = when (expiry.kind) {
-            SubscriptionExpiryProgress.Kind.ACTIVE -> resources.getQuantityString(R.plurals.cmhr_summary_days, expiry.daysRemaining, expiry.daysRemaining)
-            SubscriptionExpiryProgress.Kind.UNLIMITED -> getString(R.string.cmhr_validity_unlimited)
-            SubscriptionExpiryProgress.Kind.EXPIRED -> getString(R.string.cmhr_validity_expired)
-            SubscriptionExpiryProgress.Kind.UNKNOWN -> null
-        }
-        return listOfNotNull(traffic, validity).joinToString(" · ")
     }
 
     override fun getThemeDescriptions(): ArrayList<ThemeDescription> {

@@ -11,7 +11,23 @@ data class Announcement(
     val title: String,
     val content: String,
     val updatedAt: String,
-)
+) {
+    fun toJson(): String = JSONObject().put("title", title).put("content", content).put("updatedAt", updatedAt).toString()
+
+    companion object {
+        fun fromJson(value: String): Announcement? = runCatching {
+            val json = JSONObject(value)
+            Announcement(json.getString("title"), json.getString("content"), json.getString("updatedAt"))
+        }.getOrNull()
+    }
+}
+
+/** Separates "the service has no announcement" from "the request failed", so a cache can tell them apart. */
+sealed interface AnnouncementResult {
+    data class Shown(val item: Announcement) : AnnouncementResult
+    data object None : AnnouncementResult
+    data object Failed : AnnouncementResult
+}
 
 data class AppControl(
     val serviceEnabled: Boolean,
@@ -96,8 +112,11 @@ class CmhrApi(private val versionCode: Int) {
         }
     }
 
-    suspend fun fetchAnnouncement(endpoint: String): Announcement? {
-        if (endpoint.isBlank()) return null
+    suspend fun fetchAnnouncement(endpoint: String): Announcement? =
+        (loadAnnouncement(endpoint) as? AnnouncementResult.Shown)?.item
+
+    suspend fun loadAnnouncement(endpoint: String): AnnouncementResult {
+        if (endpoint.isBlank()) return AnnouncementResult.None
         return runCatching {
             withContext(Dispatchers.IO) {
                 val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
@@ -107,22 +126,24 @@ class CmhrApi(private val versionCode: Int) {
                     setRequestProperty("Accept", "application/json")
                 }
                 try {
-                    if (connection.responseCode !in 200..299) return@withContext null
+                    if (connection.responseCode !in 200..299) return@withContext AnnouncementResult.Failed
                     val responseText = connection.inputStream.bufferedReader().readText()
                     val json = JSONObject(responseText.takeIf { it.isNotBlank() } ?: "{}")
-                    if (!json.optBoolean("enabled", false)) return@withContext null
+                    if (!json.optBoolean("enabled", false)) return@withContext AnnouncementResult.None
                     val content = json.optString("content").trim()
-                    if (content.isBlank()) return@withContext null
-                    Announcement(
-                        title = json.optString("title").trim(),
-                        content = content,
-                        updatedAt = json.optString("updatedAt").trim(),
+                    if (content.isBlank()) return@withContext AnnouncementResult.None
+                    AnnouncementResult.Shown(
+                        Announcement(
+                            title = json.optString("title").trim(),
+                            content = content,
+                            updatedAt = json.optString("updatedAt").trim(),
+                        )
                     )
                 } finally {
                     connection.disconnect()
                 }
             }
-        }.getOrNull()
+        }.getOrDefault(AnnouncementResult.Failed)
     }
 
     suspend fun fetchAppControl(endpoint: String): AppControl? {

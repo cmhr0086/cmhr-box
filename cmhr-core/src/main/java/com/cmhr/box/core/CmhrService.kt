@@ -54,7 +54,18 @@ class CmhrService(
         return state
     }
 
-    suspend fun announcement(): Announcement? = api.fetchAnnouncement(config.announcementEndpoint)
+    val announcementEnabled: Boolean get() = config.announcementEndpoint.isNotBlank()
+
+    /** What the last successful fetch returned; null before any or after the service withdrew it. */
+    fun cachedAnnouncement(): Announcement? = store.cachedAnnouncement?.let(Announcement::fromJson)
+
+    /** Fetches and caches; a failed request falls back to the cached one when there is one. */
+    suspend fun announcement(): AnnouncementResult =
+        when (val result = api.loadAnnouncement(config.announcementEndpoint)) {
+            is AnnouncementResult.Shown -> result.also { store.cachedAnnouncement = it.item.toJson() }
+            AnnouncementResult.None -> result.also { store.cachedAnnouncement = null }
+            AnnouncementResult.Failed -> cachedAnnouncement()?.let { AnnouncementResult.Shown(it) } ?: result
+        }
 
     /** True until the user acknowledges this exact announcement (any edit makes it new again). */
     fun isUnread(announcement: Announcement): Boolean = store.seenAnnouncement != announcementKey(announcement)

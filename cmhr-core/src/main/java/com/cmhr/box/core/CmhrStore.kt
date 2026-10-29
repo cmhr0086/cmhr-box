@@ -13,6 +13,9 @@ interface CmhrStore {
     /** Key of the last announcement the user acknowledged. */
     var seenAnnouncement: String?
 
+    /** Last announcement the service returned (JSON), shown at once on the next launch. */
+    var cachedAnnouncement: String?
+
     fun clearSubscription() {
         subscriptionUserinfo = null
         subscriptionUpdatedAt = 0L
@@ -45,11 +48,16 @@ class SharedPreferencesCmhrStore(context: Context) : CmhrStore {
         get() = prefs.getString(KEY_SEEN_ANNOUNCEMENT, null)
         set(value) = prefs.edit().putString(KEY_SEEN_ANNOUNCEMENT, value).apply()
 
+    override var cachedAnnouncement: String?
+        get() = prefs.getString(KEY_CACHED_ANNOUNCEMENT, null)
+        set(value) = prefs.edit().putString(KEY_CACHED_ANNOUNCEMENT, value).apply()
+
     private companion object {
         const val KEY_INVITE = "invite_code"
         const val KEY_USERINFO = "subscription_userinfo"
         const val KEY_UPDATED_AT = "subscription_updated_at"
         const val KEY_EXPIRY_REFERENCE = "expiry_reference"
         const val KEY_SEEN_ANNOUNCEMENT = "seen_announcement"
+        const val KEY_CACHED_ANNOUNCEMENT = "cached_announcement"
     }
 }

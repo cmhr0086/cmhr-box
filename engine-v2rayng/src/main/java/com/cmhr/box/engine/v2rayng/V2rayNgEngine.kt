@@ -246,6 +246,10 @@ class V2rayNgEngine(context: Context) : ProxyEngine {
     private fun managedNodes(): List<Node> =
         MmkvManager.decodeServerList(MANAGED_SUB_ID).mapNotNull { guid ->
             val profile = MmkvManager.decodeServerConfig(guid) ?: return@mapNotNull null
+            // Gson ignores Kotlin nullability: a record it cannot map (e.g. written by a build with
+            // different field names) comes back without a type. Skip it; the next refresh rewrites it.
+            @Suppress("SENSELESS_COMPARISON")
+            if (profile.configType == null) return@mapNotNull null
             val delay = MmkvManager.decodeServerAffiliationInfo(guid)?.testDelayMillis ?: 0L
             Node(
                 id = guid,

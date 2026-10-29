@@ -24,5 +24,27 @@
         <activity
             android:name="com.v2ray.ang.ui.main.MainActivity"
             tools:node="remove" />
+
+        <!-- Upstream NotificationManager opens com.v2ray.ang.ui.main.MainActivity by class;
+             this alias takes that component name and routes it to our MainActivity. -->
+        <activity-alias
+            android:name="com.v2ray.ang.ui.main.MainActivity"
+            android:exported="false"
+            android:targetActivity=".MainActivity" />
+
+        <!-- External entry points we do not offer: config import by URL scheme / share,
+             Tasker plugin, home screen widget. Nodes only come from the managed subscription. -->
+        <activity
+            android:name="com.v2ray.ang.ui.UrlSchemeActivity"
+            tools:node="remove" />
+        <activity
+            android:name="com.v2ray.ang.ui.shortcut.TaskerActivity"
+            tools:node="remove" />
+        <receiver
+            android:name="com.v2ray.ang.receiver.TaskerReceiver"
+            tools:node="remove" />
+        <receiver
+            android:name="com.v2ray.ang.receiver.WidgetProvider"
+            tools:node="remove" />
     </application>
 </manifest>

@@ -70,5 +70,6 @@ dependencies {
     implementation(project(":tgui"))
     // Only the DI wiring may reference engine-v2rayng.
     implementation(project(":engine-v2rayng"))
+    implementation(libs.kotlinx.coroutines.android)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 }

@@ -28,4 +28,7 @@ android {
 dependencies {
     api(project(":engine-api"))
     implementation(project(":v2rayng"))
+    // :v2rayng keeps these as implementation deps; the bootstrap calls them directly.
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.work.runtime.ktx)
 }

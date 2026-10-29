@@ -23,3 +23,8 @@ android {
         }
     }
 }
+
+dependencies {
+    // Same artifact upstream ships; taken from its catalog so both stay on one version.
+    api(libs.kotlinx.coroutines.core)
+}

@@ -4,5 +4,5 @@ import org.telegram.ui.ActionBar.BaseFragment
 import org.telegram.ui.TelegramActivity
 
 class MainActivity : TelegramActivity() {
-    override fun createRootFragment(): BaseFragment = PlaceholderFragment()
+    override fun createRootFragment(): BaseFragment = DebugEngineFragment()
 }

@@ -10,9 +10,10 @@ interface ProxyEngine {
 
     /**
      * Replaces all managed nodes with the ones parsed from [rawContent] (base64 or plain
-     * share links). New nodes are stored before the old ones are removed. Returns the new nodes.
+     * share links). New nodes are stored before the old ones are removed. The selection moves
+     * to the matching new node; without a match the first node is selected.
      */
-    suspend fun replaceManagedSubscription(rawContent: String): List<Node>
+    suspend fun replaceManagedSubscription(rawContent: String): SubscriptionReplacement
 
     /** Removes the managed subscription and its nodes. */
     suspend fun clearManagedSubscription()
@@ -41,6 +42,11 @@ sealed interface EngineState {
     data class Running(val nodeId: String?) : EngineState
     data class Error(val message: String) : EngineState
 }
+
+/**
+ * @param selectionLost a managed node was selected before and has no counterpart now.
+ */
+data class SubscriptionReplacement(val nodes: List<Node>, val selectionLost: Boolean)
 
 /**
  * @param id upstream server GUID, never a list position.

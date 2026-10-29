@@ -1,0 +1,9 @@
+# Dependencies used only by our own modules. Upstream v2rayNG's catalog is imported as `libs`.
+[versions]
+junit4 = "4.13.2"
+orgJson = "20240303"
+
+[libraries]
+junit4 = { module = "junit:junit", version.ref = "junit4" }
+# Real org.json for JVM unit tests (android.jar only ships stubs).
+org-json = { module = "org.json:json", version.ref = "orgJson" }

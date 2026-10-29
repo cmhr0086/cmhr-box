@@ -15,6 +15,11 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.cmhr.box.core.AppAccessIssue
+import com.cmhr.box.core.CmhrException
+import com.cmhr.box.core.CmhrService
+import com.cmhr.box.core.SubscriptionExpiryProgress
+import com.cmhr.box.core.SubscriptionStatus
 import com.cmhr.box.engine.api.EngineState
 import com.cmhr.box.engine.api.Node
 import com.cmhr.box.engine.api.ProxyEngine
@@ -33,12 +38,14 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Stage 2 debug page: paste a subscription URL, import, pick a node, connect, test delay.
+ * Debug page: invite code (or a raw subscription URL) → nodes → connect, plus cmhr-core state.
  * Temporary; removed when the real screens land in stage 4 (strings are not localized on purpose).
  */
 class DebugEngineFragment : BaseFragment() {
 
     private lateinit var engine: ProxyEngine
+    private lateinit var cmhr: CmhrService
+    private var businessInfo: String = ""
     private var scope: CoroutineScope? = null
     private var stateJob: Job? = null
 
@@ -55,6 +62,7 @@ class DebugEngineFragment : BaseFragment() {
 
     override fun onFragmentCreate(): Boolean {
         engine = AppGraph.engine
+        cmhr = AppGraph.cmhr
         val newScope = MainScope()
         scope = newScope
         stateJob = newScope.launch {
@@ -64,6 +72,7 @@ class DebugEngineFragment : BaseFragment() {
             }
         }
         newScope.launch { reloadNodes() }
+        newScope.launch { loadBusinessInfo() }
         return super.onFragmentCreate()
     }
 
@@ -74,7 +83,7 @@ class DebugEngineFragment : BaseFragment() {
     }
 
     override fun createView(context: Context): View {
-        actionBar.setTitle("CMHR-Box 引擎调试")
+        actionBar.setTitle("CMHR-Box 调试")
 
         val column = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -82,14 +91,15 @@ class DebugEngineFragment : BaseFragment() {
             setPadding(pad, pad, pad, pad)
         }
         urlInput = EditText(context).apply {
-            hint = "订阅链接（https://…）"
+            hint = "邀请码（或 https 订阅链接）"
             inputType = InputType.TYPE_TEXT_VARIATION_URI
             setSingleLine(true)
             setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
             setHintTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteHintText))
         }
         column.addView(urlInput)
-        column.addView(button(context, "拉取并导入") { importSubscription() })
+        column.addView(button(context, "激活 / 导入") { importSubscription() })
+        column.addView(button(context, "刷新订阅") { refreshSubscription() })
         column.addView(button(context, "全部测速") { testAll() })
         toggleButton = button(context, "连接") { toggle() }
         column.addView(toggleButton)
@@ -108,23 +118,79 @@ class DebugEngineFragment : BaseFragment() {
     }
 
     private fun importSubscription() {
-        val url = urlInput?.text?.toString()?.trim().orEmpty()
-        if (!url.startsWith("https://") && !url.startsWith("http://")) {
-            showMessage("请输入 http(s) 订阅链接")
+        val input = urlInput?.text?.toString()?.trim().orEmpty()
+        if (input.isEmpty()) return
+        if (!input.startsWith("https://") && !input.startsWith("http://")) {
+            scope?.launch {
+                showMessage("激活中…")
+                runCatching { cmhr.activate(input) }
+                    .onSuccess { showMessage("已激活：${it.nodeCount} 个节点") }
+                    .onFailure { showMessage("激活失败：${describe(it)}") }
+                reloadNodes()
+                loadBusinessInfo()
+            }
             return
         }
+        val url = input
         scope?.launch {
             showMessage("拉取中…")
             runCatching {
                 val body = withContext(Dispatchers.IO) { fetch(url) }
                 engine.replaceManagedSubscription(body)
             }.onSuccess { imported ->
-                showMessage("已导入 ${imported.size} 个节点")
+                showMessage("已导入 ${imported.nodes.size} 个节点")
                 reloadNodes()
             }.onFailure {
                 showMessage("导入失败：${it.message ?: it.javaClass.simpleName}")
             }
         }
+    }
+
+    private fun refreshSubscription() {
+        scope?.launch {
+            showMessage("刷新中…")
+            runCatching { cmhr.refresh() }
+                .onSuccess { showMessage(describe(it)) }
+                .onFailure { showMessage("刷新失败：${describe(it)}") }
+            reloadNodes()
+            loadBusinessInfo()
+        }
+    }
+
+    private suspend fun loadBusinessInfo() {
+        val lines = mutableListOf<String>()
+        lines += if (!cmhr.subscriptionEnabled) "订阅服务未配置"
+        else if (cmhr.isActivated) "已激活" else "未激活"
+        if (cmhr.isActivated) {
+            val usage = cmhr.usage()
+            lines += "已用 ${gb(usage.used)} / 总量 ${if (usage.total > 0) gb(usage.total) else "不限"}"
+            val expiry = cmhr.expiryProgress()
+            lines += when (expiry.kind) {
+                SubscriptionExpiryProgress.Kind.UNKNOWN -> "到期时间未知"
+                SubscriptionExpiryProgress.Kind.UNLIMITED -> "无限期"
+                SubscriptionExpiryProgress.Kind.EXPIRED -> "已到期"
+                SubscriptionExpiryProgress.Kind.ACTIVE -> "剩余 ${expiry.daysRemaining} 天（${expiry.percentRemaining}%）"
+            }
+        }
+        cmhr.checkAppAccess()?.let { lines += "应用控制：${describe(it)}" }
+        cmhr.announcement()?.let { lines += "公告：${it.title} ${it.content}" }
+        businessInfo = lines.joinToString("\n")
+        render()
+    }
+
+    private fun gb(bytes: Long) = "%.2f GB".format(bytes / 1024.0 / 1024.0 / 1024.0)
+
+    private fun describe(value: Any): String = when (value) {
+        is SubscriptionStatus.Ready -> "已刷新：${value.nodeCount} 个节点" + if (value.needsSelection) "，请选择节点" else ""
+        is SubscriptionStatus.Removed -> "订阅已${if (value.reason.name == "EXPIRED") "到期" else "流量耗尽"}，已移除"
+        is AppAccessIssue.ServiceDisabled -> "服务停用 ${value.message}"
+        is AppAccessIssue.UpdateRequired -> "需要更新 ${value.message} ${value.updateUrl}"
+        is CmhrException.AccessDenied -> describe(value.issue)
+        is CmhrException.ServerRejected -> value.message.orEmpty()
+        is CmhrException.SubscriptionUnusable -> "新订阅不可用（${value.reason}），已保留现有订阅"
+        is CmhrException -> value.javaClass.simpleName
+        is Throwable -> value.message ?: value.javaClass.simpleName
+        else -> value.toString()
     }
 
     private fun testAll() {
@@ -149,11 +215,24 @@ class DebugEngineFragment : BaseFragment() {
                     return
                 }
                 requestNotificationPermission(activity)
-                val prepare = engine.prepareIntent(activity)
-                if (prepare != null) {
-                    startActivityForResult(prepare, REQUEST_VPN)
-                } else {
-                    scope?.launch { engine.start() }
+                scope?.launch {
+                    if (cmhr.isActivated) {
+                        val ready = runCatching { cmhr.ensureReadyForConnection() }
+                            .onFailure { showMessage("无法连接：${describe(it)}") }
+                            .getOrNull() ?: return@launch
+                        if (ready !is SubscriptionStatus.Ready || ready.needsSelection) {
+                            showMessage(describe(ready))
+                            reloadNodes()
+                            loadBusinessInfo()
+                            return@launch
+                        }
+                    }
+                    val prepare = engine.prepareIntent(activity)
+                    if (prepare != null) {
+                        startActivityForResult(prepare, REQUEST_VPN)
+                    } else {
+                        engine.start()
+                    }
                 }
             }
         }
@@ -196,7 +275,7 @@ class DebugEngineFragment : BaseFragment() {
             is EngineState.Running -> "已连接：${nodes.firstOrNull { it.id == s.nodeId }?.name ?: s.nodeId.orEmpty()}"
             is EngineState.Error -> "错误：${s.message}"
         }
-        statusView?.text = if (message.isEmpty()) status else "$status\n$message"
+        statusView?.text = listOf(businessInfo, status, message).filter { it.isNotEmpty() }.joinToString("\n")
         toggleButton?.text = when (engineState) {
             is EngineState.Running, EngineState.Starting -> "断开"
             else -> "连接"

@@ -1,6 +1,15 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+}
+
+// Service addresses come from -P, env or the git-ignored local.properties only; none are
+// committed (see buildSrc EndpointConfiguration). Unset means the feature is off.
+val endpointProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -14,6 +23,20 @@ android {
         versionCode = (property("cmhr.versionCode") as String).toInt()
         versionName = property("cmhr.versionName") as String
         missingDimensionStrategy("distribution", "playstore")
+
+        EndpointConfiguration.names.forEach { name ->
+            val endpoint = EndpointConfiguration.resolve(
+                name,
+                providers.gradleProperty(name).orNull,
+                providers.environmentVariable(name).orNull,
+                endpointProperties.getProperty(name),
+            )
+            buildConfigField("String", name, EndpointConfiguration.javaString(endpoint))
+        }
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {

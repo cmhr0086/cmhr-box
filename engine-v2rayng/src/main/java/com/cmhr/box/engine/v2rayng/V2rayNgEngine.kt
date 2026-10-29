@@ -9,6 +9,7 @@ import androidx.core.content.ContextCompat
 import com.cmhr.box.engine.api.EngineState
 import com.cmhr.box.engine.api.Node
 import com.cmhr.box.engine.api.ProxyEngine
+import com.cmhr.box.engine.api.SubscriptionReplacement
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.LauncherManager
 import com.v2ray.ang.dto.RealPingResult
@@ -104,10 +105,12 @@ class V2rayNgEngine(context: Context) : ProxyEngine {
         MessageHelper.sendMsg2Service(appContext, AppConfig.MSG_REGISTER_CLIENT, "")
     }
 
-    override suspend fun replaceManagedSubscription(rawContent: String): List<Node> =
+    override suspend fun replaceManagedSubscription(rawContent: String): SubscriptionReplacement =
         withContext(Dispatchers.IO) {
             val links = shareLinks(rawContent)
             require(links.isNotEmpty()) { "subscription has no supported nodes" }
+            val previousManaged = MmkvManager.decodeServerList(MANAGED_SUB_ID)
+            val hadSelection = MmkvManager.getSelectServer() in previousManaged
 
             if (MmkvManager.decodeSubscription(MANAGED_SUB_ID) == null) {
                 MmkvManager.encodeSubscription(MANAGED_SUB_ID, SubscriptionItem(remarks = MANAGED_SUB_REMARKS))
@@ -117,11 +120,14 @@ class V2rayNgEngine(context: Context) : ProxyEngine {
             check(count > 0) { "subscription could not be parsed" }
 
             val nodes = managedNodes()
+            // Upstream ProfileReplacement moves the selection to the matching new GUID, or
+            // leaves the old one in place when nothing matches.
             val selected = MmkvManager.getSelectServer()
-            if (nodes.none { it.id == selected }) {
+            val lost = nodes.none { it.id == selected }
+            if (lost) {
                 MmkvManager.setSelectServer(nodes.first().id)
             }
-            nodes
+            SubscriptionReplacement(nodes, selectionLost = lost && hadSelection)
         }
 
     override suspend fun clearManagedSubscription() = withContext(Dispatchers.IO) {

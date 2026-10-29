@@ -24,3 +24,12 @@ android {
         }
     }
 }
+
+dependencies {
+    api(project(":engine-api"))
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(cmhrLibs.junit4)
+    testImplementation(cmhrLibs.org.json)
+    testImplementation(libs.kotlinx.coroutines.core)
+}

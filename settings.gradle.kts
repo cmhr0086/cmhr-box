@@ -23,6 +23,9 @@ dependencyResolutionManagement {
         create("libs") {
             from(files("upstream/v2rayNG/V2rayNG/gradle/libs.versions.toml"))
         }
+        create("cmhrLibs") {
+            from(files("gradle/cmhrLibs.versions.toml"))
+        }
     }
 }
 

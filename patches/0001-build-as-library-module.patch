@@ -1,0 +1,126 @@
+diff --git a/V2rayNG/app/build.gradle.kts b/V2rayNG/app/build.gradle.kts
+index 69af7e5..a7ab702 100644
+--- a/V2rayNG/app/build.gradle.kts
++++ b/V2rayNG/app/build.gradle.kts
+@@ -1,5 +1,5 @@
+ plugins {
+-    alias(libs.plugins.android.application)
++    alias(libs.plugins.android.library)
+     alias(libs.plugins.kotlin.android)
+     alias(libs.plugins.kotlin.compose)
+     id("com.jaredsburrows.license")
+@@ -10,30 +10,11 @@ android {
+     compileSdk = 37
+ 
+     defaultConfig {
+-        applicationId = "com.v2ray.ang"
+         minSdk = 24
+-        targetSdk = 37
+-        versionCode = 754
+-        versionName = "2.3.14"
+-
+-        val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
+-        splits {
+-            abi {
+-                isEnable = true
+-                reset()
+-                if (!abiFilterList.isNullOrEmpty()) {
+-                    include(*abiFilterList.toTypedArray())
+-                } else {
+-                    include(
+-                        "arm64-v8a",
+-                        "armeabi-v7a",
+-                        "x86_64",
+-                        "x86"
+-                    )
+-                }
+-                isUniversalApk = abiFilterList.isNullOrEmpty()
+-            }
+-        }
++
++        // CMHR: library BuildConfig lacks these; the host passes its own values.
++        buildConfigField("String", "APPLICATION_ID", "\"${property("cmhr.applicationId")}\"")
++        buildConfigField("String", "VERSION_NAME", "\"${property("cmhr.versionName")}\"")
+ 
+         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+     }
+@@ -52,7 +33,6 @@ android {
+     productFlavors {
+         create("fdroid") {
+             dimension = "distribution"
+-            applicationIdSuffix = ".fdroid"
+             buildConfigField("String", "DISTRIBUTION", "\"F-Droid\"")
+         }
+         create("playstore") {
+@@ -79,71 +59,11 @@ android {
+         }
+     }
+ 
+-    applicationVariants.all {
+-        val variant = this
+-        val isFdroid = variant.productFlavors.any { it.name == "fdroid" }
+-        if (isFdroid) {
+-            val versionCodes =
+-                mapOf(
+-                    "armeabi-v7a" to 2, "arm64-v8a" to 1, "x86" to 4, "x86_64" to 3, "universal" to 0
+-                )
+-
+-            variant.outputs
+-                .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
+-                .forEach { output ->
+-                    val abi = output.getFilter("ABI") ?: "universal"
+-                    output.outputFileName = "v2rayNG_${variant.versionName}-fdroid_${abi}.apk"
+-                    if (versionCodes.containsKey(abi)) {
+-                        output.versionCodeOverride =
+-                            (100 * variant.versionCode + versionCodes[abi]!!).plus(5000000)
+-                    } else {
+-                        return@forEach
+-                    }
+-                }
+-        } else {
+-            val versionCodes =
+-                mapOf("armeabi-v7a" to 4, "arm64-v8a" to 4, "x86" to 4, "x86_64" to 4, "universal" to 4)
+-
+-            variant.outputs
+-                .map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }
+-                .forEach { output ->
+-                    val abi = if (output.getFilter("ABI") != null)
+-                        output.getFilter("ABI")
+-                    else
+-                        "universal"
+-
+-                    output.outputFileName = "v2rayNG_${variant.versionName}_${abi}.apk"
+-                    if (versionCodes.containsKey(abi)) {
+-                        output.versionCodeOverride =
+-                            (1000000 * versionCodes[abi]!!).plus(variant.versionCode)
+-                    } else {
+-                        return@forEach
+-                    }
+-                }
+-        }
+-    }
+-
+     buildFeatures {
+         buildConfig = true
+         compose = true
+     }
+ 
+-    androidResources {
+-        generateLocaleConfig = true
+-        localeFilters += listOf(
+-            "en",
+-            "zh-rCN",
+-            "zh-rTW",
+-            "vi",
+-            "ru",
+-            "fa",
+-            "ar",
+-            "az",
+-            "bn",
+-            "bqi-rIR"
+-        )
+-    }
+-
+     packaging {
+         jniLibs {
+             useLegacyPackaging = true

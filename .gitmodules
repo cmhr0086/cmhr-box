@@ -1,0 +1,6 @@
+[submodule "upstream/v2rayNG"]
+	path = upstream/v2rayNG
+	url = https://github.com/2dust/v2rayNG.git
+[submodule "upstream/telegram-11-ui"]
+	path = upstream/telegram-11-ui
+	url = https://github.com/cmhr0086/telegram-11-ui.git

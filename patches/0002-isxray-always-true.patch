@@ -1,0 +1,14 @@
+diff --git a/V2rayNG/app/src/main/java/com/v2ray/ang/util/Utils.kt b/V2rayNG/app/src/main/java/com/v2ray/ang/util/Utils.kt
+index 1f4c4d3..77765bf 100644
+--- a/V2rayNG/app/src/main/java/com/v2ray/ang/util/Utils.kt
++++ b/V2rayNG/app/src/main/java/com/v2ray/ang/util/Utils.kt
+@@ -458,7 +458,8 @@ object Utils {
+      *
+      * @return True if the package is Xray, false otherwise.
+      */
+-    fun isXray(): Boolean = BuildConfig.APPLICATION_ID.startsWith("com.v2ray.ang")
++    // CMHR: host package is not com.v2ray.ang, but the core is still Xray.
++    fun isXray(): Boolean = true
+ 
+     /**
+      * Check if an IPv4 address is within an IPv4 CIDR range

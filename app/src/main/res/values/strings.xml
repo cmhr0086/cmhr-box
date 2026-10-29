@@ -1,4 +1,150 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="cmhr_app_name">CMHR-Box</string>
+    <string name="cmhr_app_name" translatable="false">CMHR-Box</string>
+
+    <!-- Home -->
+    <string name="cmhr_state_stopped">Not connected</string>
+    <string name="cmhr_state_starting">Connecting…</string>
+    <string name="cmhr_state_running">Connected</string>
+    <string name="cmhr_state_error">Connection failed</string>
+    <string name="cmhr_state_not_activated">Not activated</string>
+    <string name="cmhr_state_not_configured">No subscription service</string>
+    <string name="cmhr_tap_to_connect">Tap to connect</string>
+    <string name="cmhr_tap_to_disconnect">Tap to disconnect</string>
+    <string name="cmhr_tap_to_activate">Enter an invite code to get started</string>
+    <string name="cmhr_not_configured_hint">This build has no subscription service</string>
+    <string name="cmhr_section_node">Node</string>
+    <string name="cmhr_current_node">Current node</string>
+    <string name="cmhr_node_unselected">None</string>
+    <string name="cmhr_section_subscription">Manage subscription</string>
+    <string name="cmhr_traffic">Traffic</string>
+    <string name="cmhr_traffic_used_total">%1$s / %2$s</string>
+    <string name="cmhr_traffic_used_only">%s used</string>
+    <string name="cmhr_traffic_unlimited">Unlimited</string>
+    <string name="cmhr_validity">Valid until</string>
+    <string name="cmhr_validity_unknown">Unknown</string>
+    <string name="cmhr_validity_unlimited">No expiration</string>
+    <string name="cmhr_validity_expired">Expired</string>
+    <plurals name="cmhr_validity_days">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+    <string name="cmhr_refresh_subscription">Refresh subscription</string>
+    <string name="cmhr_refreshing">Refreshing…</string>
+    <string name="cmhr_updated_at">Updated %s</string>
+    <string name="cmhr_updated_just_now">Just updated</string>
+    <string name="cmhr_never_updated">Never updated</string>
+    <string name="cmhr_refresh_done">Subscription updated</string>
+    <string name="cmhr_section_announcement">Announcement</string>
+    <string name="cmhr_settings">Settings</string>
+
+    <!-- Nodes -->
+    <string name="cmhr_nodes_title">Choose node</string>
+    <string name="cmhr_test_delay">Test</string>
+    <string name="cmhr_testing">Testing…</string>
+    <string name="cmhr_delay_ms">%d ms</string>
+    <string name="cmhr_delay_timeout">Timeout</string>
+    <string name="cmhr_nodes_empty">No nodes in the subscription</string>
+    <string name="cmhr_nodes_hint">Switching nodes while connected reconnects automatically. Latency is only an estimate.</string>
+
+    <!-- Invite -->
+    <string name="cmhr_invite_title">Invite code</string>
+    <string name="cmhr_invite_headline">Activate CMHR-Box</string>
+    <string name="cmhr_invite_description">Enter your invite code to get your nodes and start.</string>
+    <string name="cmhr_invite_replace_description">Enter a new invite code. Your current subscription is replaced only after the new one is verified.</string>
+    <string name="cmhr_invite_hint">Invite code</string>
+    <string name="cmhr_invite_submit">Activate</string>
+    <string name="cmhr_invite_activating">Activating…</string>
+    <string name="cmhr_invite_activated">Activated, %d nodes</string>
+
+    <!-- Settings -->
+    <string name="cmhr_section_account">Account</string>
+    <string name="cmhr_invite_status">Invite code</string>
+    <string name="cmhr_invite_status_active">Active</string>
+    <string name="cmhr_change_invite">Change invite code</string>
+    <string name="cmhr_section_appearance">Appearance</string>
+    <string name="cmhr_night_mode">Night mode</string>
+    <string name="cmhr_section_about">About</string>
+    <string name="cmhr_version">Version</string>
+    <string name="cmhr_licenses">Open source licenses</string>
+    <string name="cmhr_source_code">Source code</string>
+    <string name="cmhr_about_info">CMHR-Box is free software released under the GNU GPL v3.</string>
+
+    <!-- Licenses -->
+    <string name="cmhr_licenses_intro">CMHR-Box is released under the GNU General Public License v3.0; you may use, modify and redistribute it under its terms. It includes these open source projects:</string>
+    <string name="cmhr_license_v2rayng">v2rayNG · GPL-3.0</string>
+    <string name="cmhr_license_xray">Xray-core · MPL-2.0</string>
+    <string name="cmhr_license_libxray">AndroidLibXrayLite · LGPL-3.0</string>
+    <string name="cmhr_license_hev">hev-socks5-tunnel · MIT</string>
+    <string name="cmhr_license_tgui">Telegram for Android (telegram-11-ui) · GPL-2.0 or later</string>
+    <string name="cmhr_license_more">The full license texts ship with the source code.</string>
+
+    <!-- Dialogs and messages -->
+    <string name="cmhr_ok">OK</string>
+    <string name="cmhr_cancel">Cancel</string>
+    <string name="cmhr_continue">Continue</string>
+    <string name="cmhr_service_disabled_title">Service unavailable</string>
+    <string name="cmhr_service_disabled_message">The service is paused. Please try again later.</string>
+    <string name="cmhr_update_required_title">Update required</string>
+    <string name="cmhr_update_required_message">This version is no longer supported. Please update to continue.</string>
+    <string name="cmhr_update_now">Update</string>
+    <string name="cmhr_copy_link">Copy link</string>
+    <string name="cmhr_link_copied">Link copied</string>
+    <string name="cmhr_no_browser">No browser available. Copy the link and open it manually.</string>
+    <string name="cmhr_removed_expired">Your subscription expired and was removed. Enter your invite code again after renewing.</string>
+    <string name="cmhr_removed_exhausted">Your traffic is used up and the subscription was removed. Enter your invite code again after renewing.</string>
+    <string name="cmhr_subscription_removed_title">Subscription removed</string>
+    <string name="cmhr_change_invite_confirm">Your current subscription is replaced only after the new one is verified. You may need to choose a node again.</string>
+    <string name="cmhr_error_not_configured">This build has no subscription service</string>
+    <string name="cmhr_error_not_activated">Enter an invite code first</string>
+    <string name="cmhr_error_url_missing">The server returned no subscription address</string>
+    <string name="cmhr_error_no_nodes">The subscription has no usable nodes</string>
+    <string name="cmhr_error_unusable_expired">The new subscription has expired; your current one is kept</string>
+    <string name="cmhr_error_unusable_exhausted">The new subscription has no traffic left; your current one is kept</string>
+    <string name="cmhr_error_network">Network error: %s</string>
+    <string name="cmhr_vpn_denied">VPN permission is required to connect</string>
+
+    <!-- Drawer -->
+    <string name="cmhr_drawer_nodes">Choose node</string>
+    <string name="cmhr_drawer_announcement">Announcement</string>
+    <string name="cmhr_drawer_status_active">%1$s · %2$s</string>
+    <string name="cmhr_drawer_status_unlimited">Active · %s</string>
+    <string name="cmhr_got_it">Got it</string>
+    <string name="cmhr_no_announcement">No announcement</string>
+    <string name="cmhr_pinned_announcement">Pinned announcement</string>
+    <string name="cmhr_hide_announcement">Hide pinned announcement</string>
+    <string name="cmhr_summary_traffic_left">%s left</string>
+    <plurals name="cmhr_summary_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="cmhr_menu">Menu</string>
+
+    <!-- Connection settings -->
+    <string name="cmhr_section_connection">Connection</string>
+    <string name="cmhr_routing">Routing</string>
+    <string name="cmhr_routing_global">Global</string>
+    <string name="cmhr_routing_global_desc">All traffic except LAN goes through the proxy</string>
+    <string name="cmhr_routing_bypass">Bypass mainland China</string>
+    <string name="cmhr_routing_bypass_desc">Mainland sites and IPs go direct, the rest through the proxy</string>
+    <string name="cmhr_routing_direct">Direct</string>
+    <string name="cmhr_routing_direct_desc">All traffic goes direct, nothing through the proxy</string>
+    <string name="cmhr_routing_hint">An active connection reconnects automatically after a change.</string>
+    <string name="cmhr_per_app">Per-app proxy</string>
+    <string name="cmhr_per_app_off">Off</string>
+    <string name="cmhr_per_app_off_desc">All apps follow the routing mode</string>
+    <string name="cmhr_per_app_proxy">Proxy selected apps only</string>
+    <string name="cmhr_per_app_proxy_desc">Only checked apps go through the proxy</string>
+    <string name="cmhr_per_app_bypass">Bypass selected apps</string>
+    <string name="cmhr_per_app_bypass_desc">Checked apps go direct, all others through the proxy</string>
+    <string name="cmhr_per_app_count">%1$s · %2$d apps</string>
+    <string name="cmhr_per_app_apps">Apps</string>
+    <string name="cmhr_per_app_search">Search apps</string>
+    <string name="cmhr_per_app_show_system">Show system apps</string>
+    <string name="cmhr_per_app_hint">Per-app proxy works in VPN mode only. Saved when you leave; an active connection reconnects.</string>
+    <string name="cmhr_ipv6">IPv6 routing</string>
+    <string name="cmhr_ipv6_hint">Routes IPv6 traffic through the VPN too. Keep it off if your network or node has no IPv6.</string>
+    <string name="cmhr_drawer_connect">Connect</string>
+    <string name="cmhr_section_usage">Usage</string>
+    <string name="cmhr_change_invite_action">Change</string>
 </resources>

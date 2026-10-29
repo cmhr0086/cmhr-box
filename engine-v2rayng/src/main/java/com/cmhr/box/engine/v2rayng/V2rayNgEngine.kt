@@ -8,13 +8,17 @@ import android.net.VpnService
 import androidx.core.content.ContextCompat
 import com.cmhr.box.engine.api.EngineState
 import com.cmhr.box.engine.api.Node
+import com.cmhr.box.engine.api.PerAppMode
+import com.cmhr.box.engine.api.PerAppProxy
 import com.cmhr.box.engine.api.ProxyEngine
+import com.cmhr.box.engine.api.RoutingMode
 import com.cmhr.box.engine.api.SubscriptionReplacement
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.LauncherManager
 import com.v2ray.ang.dto.RealPingResult
 import com.v2ray.ang.dto.TestServiceMessage
 import com.v2ray.ang.dto.entities.SubscriptionItem
+import com.v2ray.ang.enums.RoutingType
 import com.v2ray.ang.extension.serializable
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
@@ -189,6 +193,56 @@ class V2rayNgEngine(context: Context) : ProxyEngine {
         return nodeIds.associateWith { id -> request.results[id]?.takeIf { it > 0 } ?: -1L }
     }
 
+    override suspend fun routingMode(): RoutingMode = withContext(Dispatchers.IO) {
+        MmkvManager.decodeSettingsString(KEY_ROUTING_MODE)
+            ?.let { saved -> RoutingMode.entries.firstOrNull { it.name == saved } }
+            // SettingsManager.initApp seeds the WHITE preset, which bypasses mainland China.
+            ?: RoutingMode.BYPASS_MAINLAND
+    }
+
+    override suspend fun setRoutingMode(mode: RoutingMode) {
+        withContext(Dispatchers.IO) {
+            when (mode) {
+                RoutingMode.GLOBAL -> SettingsManager.resetRoutingRulesetsFromPresets(appContext, RoutingType.GLOBAL)
+                RoutingMode.BYPASS_MAINLAND -> SettingsManager.resetRoutingRulesetsFromPresets(appContext, RoutingType.WHITE)
+                RoutingMode.DIRECT -> SettingsManager.resetRoutingRulesets(DIRECT_RULESET)
+            }
+            MmkvManager.encodeSettings(KEY_ROUTING_MODE, mode.name)
+        }
+        restartIfRunning()
+    }
+
+    override suspend fun perAppProxy(): PerAppProxy = withContext(Dispatchers.IO) {
+        val mode = when {
+            !MmkvManager.decodeSettingsBool(AppConfig.PREF_PER_APP_PROXY, false) -> PerAppMode.OFF
+            MmkvManager.decodeSettingsBool(AppConfig.PREF_BYPASS_APPS, false) -> PerAppMode.BYPASS_SELECTED
+            else -> PerAppMode.PROXY_SELECTED
+        }
+        PerAppProxy(mode, MmkvManager.decodeSettingsStringSet(AppConfig.PREF_PER_APP_PROXY_SET).orEmpty().toSet())
+    }
+
+    override suspend fun setPerAppProxy(value: PerAppProxy) {
+        withContext(Dispatchers.IO) {
+            MmkvManager.encodeSettings(AppConfig.PREF_PER_APP_PROXY, value.mode != PerAppMode.OFF)
+            MmkvManager.encodeSettings(AppConfig.PREF_BYPASS_APPS, value.mode == PerAppMode.BYPASS_SELECTED)
+            MmkvManager.encodeSettings(AppConfig.PREF_PER_APP_PROXY_SET, value.packages.toMutableSet())
+        }
+        restartIfRunning()
+    }
+
+    override suspend fun ipv6Enabled(): Boolean = withContext(Dispatchers.IO) {
+        MmkvManager.decodeSettingsBool(AppConfig.PREF_IPV6_ENABLED, false)
+    }
+
+    override suspend fun setIpv6Enabled(enabled: Boolean) {
+        withContext(Dispatchers.IO) { MmkvManager.encodeSettings(AppConfig.PREF_IPV6_ENABLED, enabled) }
+        restartIfRunning()
+    }
+
+    private fun restartIfRunning() {
+        if (_state.value is EngineState.Running) LauncherManager.restartService(appContext)
+    }
+
     private fun managedNodes(): List<Node> =
         MmkvManager.decodeServerList(MANAGED_SUB_ID).mapNotNull { guid ->
             val profile = MmkvManager.decodeServerConfig(guid) ?: return@mapNotNull null
@@ -209,6 +263,11 @@ class V2rayNgEngine(context: Context) : ProxyEngine {
         private const val MANAGED_SUB_ID = "cmhr-managed"
         private const val MANAGED_SUB_REMARKS = "CMHR"
         private const val DELAY_TEST_TIMEOUT_MS = 120_000L
+        private const val KEY_ROUTING_MODE = "cmhr_routing_mode"
+
+        /** Upstream has no "direct" preset: one catch-all rule to the direct outbound. */
+        private const val DIRECT_RULESET =
+            """[{"remarks":"direct","port":"0-65535","outboundTag":"direct"}]"""
 
         private val SHARE_LINK_SCHEMES = listOf(
             AppConfig.VLESS,

@@ -4,8 +4,10 @@
 
     <application
         android:name=".CmhrApp"
+        android:icon="@mipmap/cmhr_ic_launcher"
         android:label="@string/cmhr_app_name"
-        tools:replace="android:name,android:label">
+        android:roundIcon="@mipmap/cmhr_ic_launcher"
+        tools:replace="android:name,android:label,android:icon">
 
         <activity
             android:name=".MainActivity"

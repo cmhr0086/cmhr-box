@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import com.cmhr.box.engine.api.EngineState
 import com.cmhr.box.engine.api.Node
+import com.cmhr.box.engine.api.PerAppMode
+import com.cmhr.box.engine.api.PerAppProxy
+import com.cmhr.box.engine.api.RoutingMode
 import com.cmhr.box.engine.api.ProxyEngine
 import com.cmhr.box.engine.api.SubscriptionReplacement
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +25,8 @@ class CmhrServiceTest {
         override var subscriptionUserinfo: String? = null
         override var subscriptionUpdatedAt: Long = 0L
         override var expiryReference: String? = null
+        override var seenAnnouncement: String? = null
+        override var hiddenAnnouncement: String? = null
     }
 
     /** Body lines are node names; selection maps by name like upstream ProfileReplacement. */
@@ -51,6 +56,12 @@ class CmhrServiceTest {
         override suspend fun start() { state.value = EngineState.Running(selected) }
         override suspend fun stop() { stops++; state.value = EngineState.Stopped }
         override suspend fun testDelay(nodeIds: List<String>) = emptyMap<String, Long>()
+        override suspend fun routingMode() = RoutingMode.BYPASS_MAINLAND
+        override suspend fun setRoutingMode(mode: RoutingMode) {}
+        override suspend fun perAppProxy() = PerAppProxy(PerAppMode.OFF, emptySet())
+        override suspend fun setPerAppProxy(value: PerAppProxy) {}
+        override suspend fun ipv6Enabled() = false
+        override suspend fun setIpv6Enabled(enabled: Boolean) {}
     }
 
     private lateinit var store: MemoryStore
@@ -184,6 +195,32 @@ class CmhrServiceTest {
         serveControl("""{"serviceEnabled":false}""")
         assertEquals(SubscriptionStatus.Ready(1, needsSelection = false), service(control = false).refresh())
         assertTrue(FakeHttp.requests.none { it.url.path == "/control" })
+    }
+
+    @Test fun announcementStaysUnreadUntilAcknowledgedAndAnyEditMakesItNew() {
+        val service = service()
+        val first = Announcement("Notice", "Body", "2026-10-28 12:00:00")
+        assertTrue(service.isUnread(first))
+        service.markRead(first)
+        assertFalse(service.isUnread(first))
+        assertTrue(service.isUnread(first.copy(content = "Body, edited")))
+        assertTrue(service.isUnread(first.copy(updatedAt = "2026-10-29 08:00:00")))
+
+        assertFalse(service.isHidden(first))
+        service.hide(first)
+        assertTrue(service.isHidden(first))
+        assertFalse(service.isHidden(first.copy(content = "Body, edited")))
+    }
+
+    @Test fun refreshIsDueOnlyForActivatedSubscriptionsPastTheInterval() {
+        val interval = CmhrService.AUTO_REFRESH_INTERVAL_SECONDS
+        assertFalse(service().refreshDue())
+        store.inviteCode = "code-1"
+        store.subscriptionUpdatedAt = now - interval + 60
+        assertFalse(service().refreshDue())
+        store.subscriptionUpdatedAt = now - interval
+        assertTrue(service().refreshDue())
+        assertFalse(service(subscription = false).refreshDue())
     }
 
     @Test fun connectionCheckRefreshesOnceWhenNoNodesAreStored() = runBlocking {

@@ -10,6 +10,12 @@ interface CmhrStore {
     var subscriptionUpdatedAt: Long
     var expiryReference: String?
 
+    /** Key of the last announcement the user acknowledged. */
+    var seenAnnouncement: String?
+
+    /** Key of the announcement whose pinned bar the user closed. */
+    var hiddenAnnouncement: String?
+
     fun clearSubscription() {
         subscriptionUserinfo = null
         subscriptionUpdatedAt = 0L
@@ -38,10 +44,20 @@ class SharedPreferencesCmhrStore(context: Context) : CmhrStore {
         get() = prefs.getString(KEY_EXPIRY_REFERENCE, null)
         set(value) = prefs.edit().putString(KEY_EXPIRY_REFERENCE, value).apply()
 
+    override var seenAnnouncement: String?
+        get() = prefs.getString(KEY_SEEN_ANNOUNCEMENT, null)
+        set(value) = prefs.edit().putString(KEY_SEEN_ANNOUNCEMENT, value).apply()
+
+    override var hiddenAnnouncement: String?
+        get() = prefs.getString(KEY_HIDDEN_ANNOUNCEMENT, null)
+        set(value) = prefs.edit().putString(KEY_HIDDEN_ANNOUNCEMENT, value).apply()
+
     private companion object {
         const val KEY_INVITE = "invite_code"
         const val KEY_USERINFO = "subscription_userinfo"
         const val KEY_UPDATED_AT = "subscription_updated_at"
         const val KEY_EXPIRY_REFERENCE = "expiry_reference"
+        const val KEY_SEEN_ANNOUNCEMENT = "seen_announcement"
+        const val KEY_HIDDEN_ANNOUNCEMENT = "hidden_announcement"
     }
 }

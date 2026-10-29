@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paper plane with a dotted route behind it (CMHR-Box mark). Generated with the connect
+     button geometry in ui/Cells.kt; keep both in sync. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FFFFFF" android:pathData="M37.80,51.90 L75.80,36.70 L53.00,57.98 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.72" android:pathData="M53.00,57.98 L75.80,36.70 L66.30,70.90 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.5" android:pathData="M53.00,57.98 L54.14,69.00 L59.46,62.73 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85" android:pathData="M22.31,72.80 a1.04,1.04 0 1,0 2.09,0 a1.04,1.04 0 1,0 -2.09,0" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85" android:pathData="M27.92,69.57 a1.52,1.52 0 1,0 3.04,0 a1.52,1.52 0 1,0 -3.04,0" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85" android:pathData="M33.91,65.77 a1.99,1.99 0 1,0 3.99,0 a1.99,1.99 0 1,0 -3.99,0" />
+</vector>

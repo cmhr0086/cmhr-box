@@ -34,7 +34,40 @@ interface ProxyEngine {
 
     /** Real delay test; failed nodes map to -1. */
     suspend fun testDelay(nodeIds: List<String>): Map<String, Long>
+
+    // Connection settings. Each setter reconnects when the engine is running.
+
+    suspend fun routingMode(): RoutingMode
+    suspend fun setRoutingMode(mode: RoutingMode)
+    suspend fun perAppProxy(): PerAppProxy
+    suspend fun setPerAppProxy(value: PerAppProxy)
+    suspend fun ipv6Enabled(): Boolean
+    suspend fun setIpv6Enabled(enabled: Boolean)
 }
+
+/** Which traffic goes through the proxy. */
+enum class RoutingMode {
+    /** Everything except LAN. */
+    GLOBAL,
+
+    /** Mainland China domains and IPs go direct, the rest through the proxy. */
+    BYPASS_MAINLAND,
+
+    /** Nothing through the proxy (tunnel stays up, traffic goes out directly). */
+    DIRECT,
+}
+
+enum class PerAppMode {
+    OFF,
+
+    /** Only [PerAppProxy.packages] use the proxy. */
+    PROXY_SELECTED,
+
+    /** Everything except [PerAppProxy.packages] uses the proxy. */
+    BYPASS_SELECTED,
+}
+
+data class PerAppProxy(val mode: PerAppMode, val packages: Set<String>)
 
 sealed interface EngineState {
     data object Stopped : EngineState

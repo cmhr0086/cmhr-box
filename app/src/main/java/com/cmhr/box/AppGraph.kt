@@ -7,6 +7,9 @@ import com.cmhr.box.core.CmhrService
 import com.cmhr.box.core.SharedPreferencesCmhrStore
 import com.cmhr.box.engine.api.ProxyEngine
 import com.cmhr.box.engine.v2rayng.V2rayNgEngine
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 /** Manual DI. The only place in :app that references engine-v2rayng. */
 object AppGraph {
@@ -15,6 +18,9 @@ object AppGraph {
     fun init(app: Application) {
         this.app = app
     }
+
+    /** For short work that must finish after the screen that started it is gone. */
+    val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     /** Main process only: the engine listens for daemon broadcasts there. */
     val engine: ProxyEngine by lazy { V2rayNgEngine(app) }

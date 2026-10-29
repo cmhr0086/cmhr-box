@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 24-25: the adaptive icon pre-composed into a circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M4.00,54.00 a50.00,50.00 0 1,0 100.00,0 a50.00,50.00 0 1,0 -100.00,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="108"
+                android:endY="108">
+                <item android:color="#4A5CF0" android:offset="0" />
+                <item android:color="#1DB5DE" android:offset="1" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#FFFFFF" android:pathData="M33.15,51.81 L76.85,34.34 L50.63,58.81 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.72" android:pathData="M50.63,58.81 L76.85,34.34 L65.93,73.66 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.5" android:pathData="M50.63,58.81 L51.94,71.48 L58.06,64.27 Z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85" android:pathData="M15.34,75.85 a1.20,1.20 0 1,0 2.40,0 a1.20,1.20 0 1,0 -2.40,0" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85" android:pathData="M21.79,72.14 a1.75,1.75 0 1,0 3.50,0 a1.75,1.75 0 1,0 -3.50,0" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.85" android:pathData="M28.67,67.77 a2.29,2.29 0 1,0 4.59,0 a2.29,2.29 0 1,0 -4.59,0" />
+</vector>

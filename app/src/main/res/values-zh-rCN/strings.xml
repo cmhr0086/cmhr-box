@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 主页 -->
+    <string name="cmhr_state_stopped">未连接</string>
+    <string name="cmhr_state_starting">正在连接…</string>
+    <string name="cmhr_state_running">已连接</string>
+    <string name="cmhr_state_error">连接失败</string>
+    <string name="cmhr_state_not_activated">尚未激活</string>
+    <string name="cmhr_state_not_configured">未配置订阅服务</string>
+    <string name="cmhr_tap_to_connect">轻触连接</string>
+    <string name="cmhr_tap_to_disconnect">轻触断开</string>
+    <string name="cmhr_tap_to_activate">输入邀请码以开始使用</string>
+    <string name="cmhr_not_configured_hint">此版本未内置订阅服务</string>
+    <string name="cmhr_section_node">节点</string>
+    <string name="cmhr_current_node">当前节点</string>
+    <string name="cmhr_node_unselected">未选择</string>
+    <string name="cmhr_section_subscription">订阅管理</string>
+    <string name="cmhr_traffic">流量</string>
+    <string name="cmhr_traffic_used_total">%1$s / %2$s</string>
+    <string name="cmhr_traffic_used_only">已用 %s</string>
+    <string name="cmhr_traffic_unlimited">不限流量</string>
+    <string name="cmhr_validity">有效期</string>
+    <string name="cmhr_validity_unknown">未知</string>
+    <string name="cmhr_validity_unlimited">长期有效</string>
+    <string name="cmhr_validity_expired">已到期</string>
+    <plurals name="cmhr_validity_days">
+        <item quantity="other">剩余 %d 天</item>
+    </plurals>
+    <string name="cmhr_refresh_subscription">刷新订阅</string>
+    <string name="cmhr_refreshing">正在刷新…</string>
+    <string name="cmhr_updated_at">%s更新</string>
+    <string name="cmhr_updated_just_now">刚刚更新</string>
+    <string name="cmhr_never_updated">尚未更新</string>
+    <string name="cmhr_refresh_done">订阅已更新</string>
+    <string name="cmhr_section_announcement">公告</string>
+    <string name="cmhr_settings">设置</string>
+
+    <!-- 节点 -->
+    <string name="cmhr_nodes_title">选择节点</string>
+    <string name="cmhr_test_delay">测速</string>
+    <string name="cmhr_testing">测速中…</string>
+    <string name="cmhr_delay_ms">%d ms</string>
+    <string name="cmhr_delay_timeout">超时</string>
+    <string name="cmhr_nodes_empty">订阅中暂无节点</string>
+    <string name="cmhr_nodes_hint">连接中切换节点会自动重新连接。延迟仅供参考，以实际连接为准。</string>
+
+    <!-- 邀请码 -->
+    <string name="cmhr_invite_title">邀请码</string>
+    <string name="cmhr_invite_headline">激活 CMHR-Box</string>
+    <string name="cmhr_invite_description">输入邀请码，即可获取节点并开始使用。</string>
+    <string name="cmhr_invite_replace_description">输入新的邀请码。新订阅验证通过后才会替换当前订阅，失败时保持不变。</string>
+    <string name="cmhr_invite_hint">邀请码</string>
+    <string name="cmhr_invite_submit">激活</string>
+    <string name="cmhr_invite_activating">正在激活…</string>
+    <string name="cmhr_invite_activated">已激活，共 %d 个节点</string>
+
+    <!-- 设置 -->
+    <string name="cmhr_section_account">账户</string>
+    <string name="cmhr_invite_status">邀请码</string>
+    <string name="cmhr_invite_status_active">已激活</string>
+    <string name="cmhr_change_invite">更换邀请码</string>
+    <string name="cmhr_section_appearance">外观</string>
+    <string name="cmhr_night_mode">夜间模式</string>
+    <string name="cmhr_section_about">关于</string>
+    <string name="cmhr_version">版本</string>
+    <string name="cmhr_licenses">开源许可</string>
+    <string name="cmhr_source_code">源代码</string>
+    <string name="cmhr_about_info">CMHR-Box 是自由软件，以 GNU GPL v3 发布。</string>
+
+    <!-- 开源许可 -->
+    <string name="cmhr_licenses_intro">CMHR-Box 以 GNU General Public License v3.0 发布，你可以在其条款下自由使用、修改和再分发。本软件包含以下开源项目：</string>
+    <string name="cmhr_license_v2rayng">v2rayNG · GPL-3.0</string>
+    <string name="cmhr_license_xray">Xray-core · MPL-2.0</string>
+    <string name="cmhr_license_libxray">AndroidLibXrayLite · LGPL-3.0</string>
+    <string name="cmhr_license_hev">hev-socks5-tunnel · MIT</string>
+    <string name="cmhr_license_tgui">Telegram for Android（telegram-11-ui）· GPL-2.0 或更高版本</string>
+    <string name="cmhr_license_more">各项目的完整许可文本随源代码一同提供。</string>
+
+    <!-- 弹窗与提示 -->
+    <string name="cmhr_ok">好</string>
+    <string name="cmhr_cancel">取消</string>
+    <string name="cmhr_continue">继续</string>
+    <string name="cmhr_service_disabled_title">服务暂不可用</string>
+    <string name="cmhr_service_disabled_message">服务已暂停，请稍后再试。</string>
+    <string name="cmhr_update_required_title">需要更新</string>
+    <string name="cmhr_update_required_message">当前版本已停止支持，请更新后继续使用。</string>
+    <string name="cmhr_update_now">立即更新</string>
+    <string name="cmhr_copy_link">复制链接</string>
+    <string name="cmhr_link_copied">链接已复制</string>
+    <string name="cmhr_no_browser">没有可用的浏览器，请复制链接后手动打开</string>
+    <string name="cmhr_removed_expired">订阅已到期，已从本机移除。续期后请重新输入邀请码。</string>
+    <string name="cmhr_removed_exhausted">订阅流量已用完，已从本机移除。续费后请重新输入邀请码。</string>
+    <string name="cmhr_subscription_removed_title">订阅已移除</string>
+    <string name="cmhr_change_invite_confirm">新订阅验证通过后才会替换当前订阅，失败时保持不变。替换后可能需要重新选择节点。</string>
+    <string name="cmhr_error_not_configured">此版本未配置订阅服务</string>
+    <string name="cmhr_error_not_activated">请先输入邀请码</string>
+    <string name="cmhr_error_url_missing">服务器未返回订阅地址</string>
+    <string name="cmhr_error_no_nodes">订阅中没有可用节点</string>
+    <string name="cmhr_error_unusable_expired">新订阅已到期，已保留当前订阅</string>
+    <string name="cmhr_error_unusable_exhausted">新订阅流量已用完，已保留当前订阅</string>
+    <string name="cmhr_error_network">网络错误：%s</string>
+    <string name="cmhr_vpn_denied">需要允许 VPN 连接才能使用</string>
+
+    <!-- 侧边栏 -->
+    <string name="cmhr_drawer_nodes">选择节点</string>
+    <string name="cmhr_drawer_announcement">公告</string>
+    <string name="cmhr_drawer_status_active">%1$s · %2$s</string>
+    <string name="cmhr_drawer_status_unlimited">已激活 · %s</string>
+    <string name="cmhr_got_it">知道了</string>
+    <string name="cmhr_no_announcement">暂无公告</string>
+    <string name="cmhr_pinned_announcement">置顶公告</string>
+    <string name="cmhr_hide_announcement">隐藏置顶公告</string>
+    <string name="cmhr_summary_traffic_left">%s 可用</string>
+    <plurals name="cmhr_summary_days">
+        <item quantity="other">%d 天</item>
+    </plurals>
+    <string name="cmhr_menu">菜单</string>
+
+    <!-- 连接设置 -->
+    <string name="cmhr_section_connection">连接</string>
+    <string name="cmhr_routing">路由模式</string>
+    <string name="cmhr_routing_global">全局</string>
+    <string name="cmhr_routing_global_desc">除局域网外，所有流量都经过代理</string>
+    <string name="cmhr_routing_bypass">绕过大陆</string>
+    <string name="cmhr_routing_bypass_desc">大陆网站和 IP 直连，其余经过代理</string>
+    <string name="cmhr_routing_direct">直连</string>
+    <string name="cmhr_routing_direct_desc">所有流量直连，不经过代理</string>
+    <string name="cmhr_routing_hint">修改后，正在使用的连接会自动重连。</string>
+    <string name="cmhr_per_app">分应用代理</string>
+    <string name="cmhr_per_app_off">关闭</string>
+    <string name="cmhr_per_app_off_desc">所有应用都按路由模式处理</string>
+    <string name="cmhr_per_app_proxy">仅代理所选应用</string>
+    <string name="cmhr_per_app_proxy_desc">只有勾选的应用经过代理</string>
+    <string name="cmhr_per_app_bypass">所选应用不走代理</string>
+    <string name="cmhr_per_app_bypass_desc">勾选的应用直连，其余应用经过代理</string>
+    <string name="cmhr_per_app_count">%1$s · %2$d 个应用</string>
+    <string name="cmhr_per_app_apps">应用</string>
+    <string name="cmhr_per_app_search">搜索应用</string>
+    <string name="cmhr_per_app_show_system">显示系统应用</string>
+    <string name="cmhr_per_app_hint">分应用代理只在 VPN 模式下生效。离开此页时保存，正在使用的连接会自动重连。</string>
+    <string name="cmhr_ipv6">IPv6 路由</string>
+    <string name="cmhr_ipv6_hint">开启后 VPN 也接管 IPv6 流量。网络或节点不支持 IPv6 时请保持关闭。</string>
+    <string name="cmhr_drawer_connect">连接</string>
+    <string name="cmhr_section_usage">用量</string>
+    <string name="cmhr_change_invite_action">更换</string>
+</resources>

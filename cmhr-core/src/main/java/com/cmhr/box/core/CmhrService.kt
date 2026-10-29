@@ -56,6 +56,28 @@ class CmhrService(
 
     suspend fun announcement(): Announcement? = api.fetchAnnouncement(config.announcementEndpoint)
 
+    /** True until the user acknowledges this exact announcement (any edit makes it new again). */
+    fun isUnread(announcement: Announcement): Boolean = store.seenAnnouncement != announcementKey(announcement)
+
+    fun markRead(announcement: Announcement) {
+        store.seenAnnouncement = announcementKey(announcement)
+    }
+
+    /** True once the user closed this exact announcement's pinned bar; a new or edited one shows again. */
+    fun isHidden(announcement: Announcement): Boolean = store.hiddenAnnouncement == announcementKey(announcement)
+
+    fun hide(announcement: Announcement) {
+        store.hiddenAnnouncement = announcementKey(announcement)
+        markRead(announcement)
+    }
+
+    private fun announcementKey(announcement: Announcement): String =
+        "${announcement.updatedAt}:${(announcement.title + "\n" + announcement.content).hashCode()}"
+
+    /** An activated subscription not refreshed for [intervalSeconds] should be refreshed quietly. */
+    fun refreshDue(intervalSeconds: Long = AUTO_REFRESH_INTERVAL_SECONDS): Boolean =
+        subscriptionEnabled && isActivated && nowSeconds() - store.subscriptionUpdatedAt >= intervalSeconds
+
     /** Null when access is allowed, the endpoint is off, or the control service is unreachable. */
     suspend fun checkAppAccess(): AppAccessIssue? = AppAccess.evaluate(
         api.fetchAppControl(config.appControlEndpoint),
@@ -159,5 +181,9 @@ class CmhrService(
 
     private suspend fun requireAppAccess() {
         checkAppAccess()?.let { throw CmhrException.AccessDenied(it) }
+    }
+
+    companion object {
+        const val AUTO_REFRESH_INTERVAL_SECONDS = 6 * 60 * 60L
     }
 }

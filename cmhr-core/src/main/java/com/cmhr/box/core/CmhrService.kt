@@ -63,14 +63,6 @@ class CmhrService(
         store.seenAnnouncement = announcementKey(announcement)
     }
 
-    /** True once the user closed this exact announcement's pinned bar; a new or edited one shows again. */
-    fun isHidden(announcement: Announcement): Boolean = store.hiddenAnnouncement == announcementKey(announcement)
-
-    fun hide(announcement: Announcement) {
-        store.hiddenAnnouncement = announcementKey(announcement)
-        markRead(announcement)
-    }
-
     private fun announcementKey(announcement: Announcement): String =
         "${announcement.updatedAt}:${(announcement.title + "\n" + announcement.content).hashCode()}"
 

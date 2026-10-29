@@ -26,7 +26,6 @@ class CmhrServiceTest {
         override var subscriptionUpdatedAt: Long = 0L
         override var expiryReference: String? = null
         override var seenAnnouncement: String? = null
-        override var hiddenAnnouncement: String? = null
     }
 
     /** Body lines are node names; selection maps by name like upstream ProfileReplacement. */
@@ -205,11 +204,6 @@ class CmhrServiceTest {
         assertFalse(service.isUnread(first))
         assertTrue(service.isUnread(first.copy(content = "Body, edited")))
         assertTrue(service.isUnread(first.copy(updatedAt = "2026-10-29 08:00:00")))
-
-        assertFalse(service.isHidden(first))
-        service.hide(first)
-        assertTrue(service.isHidden(first))
-        assertFalse(service.isHidden(first.copy(content = "Body, edited")))
     }
 
     @Test fun refreshIsDueOnlyForActivatedSubscriptionsPastTheInterval() {

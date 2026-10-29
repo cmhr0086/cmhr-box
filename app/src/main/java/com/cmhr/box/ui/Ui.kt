@@ -1,9 +1,11 @@
 package com.cmhr.box.ui
 
+import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.text.format.DateUtils
 import android.widget.Toast
@@ -135,4 +137,15 @@ fun Context.openUrl(url: String): Boolean = runCatching {
 fun Context.copyText(text: String) {
     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     clipboard.setPrimaryClip(ClipData.newPlainText(null, text))
+}
+
+/** Vendor runtime permission for the installed-app list; only some ROMs define it. */
+private const val GET_INSTALLED_APPS = "com.android.permission.GET_INSTALLED_APPS"
+
+/** Asks for the app list where the ROM gates it; a no-op elsewhere or once granted. */
+fun Activity.requestAppListPermission(requestCode: Int) {
+    val defined = runCatching { packageManager.getPermissionInfo(GET_INSTALLED_APPS, 0) }.isSuccess
+    if (defined && checkSelfPermission(GET_INSTALLED_APPS) != PackageManager.PERMISSION_GRANTED) {
+        requestPermissions(arrayOf(GET_INSTALLED_APPS), requestCode)
+    }
 }

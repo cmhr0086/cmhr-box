@@ -12,7 +12,6 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.cmhr.box.AppGraph
@@ -24,13 +23,12 @@ import com.cmhr.box.core.SubscriptionExpiryProgress
 import com.cmhr.box.core.SubscriptionStatus
 import com.cmhr.box.engine.api.EngineState
 import com.cmhr.box.engine.api.Node
-import com.cmhr.box.engine.api.PerAppMode
-import com.cmhr.box.engine.api.PerAppProxy
 import com.cmhr.box.engine.api.RoutingMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.telegram.messenger.AndroidUtilities
 import org.telegram.ui.ActionBar.ActionBar
@@ -45,8 +43,8 @@ import org.telegram.ui.Components.RadialProgressView
 import org.telegram.tgui.R as TR
 
 /**
- * Connect screen (root): a pinned announcement bar under the ActionBar, the paper-plane button in
- * the middle, the node card, and one card for routing, per-app proxy and subscription.
+ * Connect screen (root): the paper-plane button in the middle, then the node card, one card for
+ * routing, per-app proxy and subscription, and the announcement card at the bottom.
  */
 class HomeFragment : BaseFragment() {
 
@@ -58,13 +56,16 @@ class HomeFragment : BaseFragment() {
     private var nodes: List<Node> = emptyList()
     private var selectedId: String? = null
     private var routing = RoutingMode.BYPASS_MAINLAND
-    private var perApp = PerAppProxy(PerAppMode.OFF, emptySet())
     private var announcement: Announcement? = null
     private var announcementShown = false
     private var connecting = false
     private var accessJob: Job? = null
     private var announcementJob: Job? = null
     private var invitePrompted = false
+    private var appListRequested = false
+    private var connectJob: Job? = null
+    private var timeoutJob: Job? = null
+    private var stopWhenUp = false
     private var drawer: CmhrDrawer? = null
 
     // Views (createView may run again; state above survives it).
@@ -72,14 +73,9 @@ class HomeFragment : BaseFragment() {
     private var ring: RadialProgressView? = null
     private var title: TextView? = null
     private var subtitle: TextView? = null
-    private var pinned: PinnedBar? = null
-    private var pinnedShadow: View? = null
     private var card: LinearLayout? = null
-    private var nodeCard: FrameLayout? = null
-    private var nodeLabel: TextView? = null
-    private var nodeName: TextView? = null
-    private var nodeDelay: TextView? = null
-    private var nodeArrow: ImageView? = null
+    private var nodeCard: SummaryCard? = null
+    private var announcementCard: SummaryCard? = null
     private var routingRow: TextCell? = null
     private var perAppRow: TextCell? = null
     private var subscriptionRow: TextCell? = null
@@ -91,6 +87,10 @@ class HomeFragment : BaseFragment() {
             engine.state.collect {
                 engineState = it
                 if (it !is EngineState.Starting) connecting = false
+                if (it is EngineState.Running || it is EngineState.Error) timeoutJob?.cancel()
+                // A stop sent while the daemon was still starting can be lost; repeat it once it is up.
+                if (it is EngineState.Running && stopWhenUp) engine.stop()
+                if (it is EngineState.Stopped || it is EngineState.Error) stopWhenUp = false
                 render()
             }
         }
@@ -121,17 +121,6 @@ class HomeFragment : BaseFragment() {
 
         val root = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
 
-        // Pinned announcement, as in a Telegram chat: tap opens it, the cross hides it until the next one.
-        pinned = PinnedBar(context).apply {
-            setOnClickListener { announcement?.let { openAnnouncement(it) } }
-            close.contentDescription = context.getString(R.string.cmhr_hide_announcement)
-            close.setOnClickListener {
-                announcement?.let { cmhr.hide(it) }
-                render()
-            }
-        }
-        root.addView(pinned, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48))
-
         // Upper part: the button, as large as the screen width allows, with status under it.
         val top = FrameLayout(context)
         val column = LinearLayout(context).apply {
@@ -140,7 +129,7 @@ class HomeFragment : BaseFragment() {
         }
         // As large as the width allows, but small enough that status and the card still fit below.
         val screenDp = AndroidUtilities.displaySize.y / AndroidUtilities.density
-        val spareDp = screenDp - ActionBar.getCurrentActionBarHeight() / AndroidUtilities.density - 48 - 68 - 12 - CARD_ROWS * 50 - 40 - 110
+        val spareDp = screenDp - ActionBar.getCurrentActionBarHeight() / AndroidUtilities.density - 2 * (68 + 12) - CARD_ROWS * 50 - 24 - 110
         val size = minOf(minOf(AndroidUtilities.displaySize.x, AndroidUtilities.displaySize.y) * 0.58f / AndroidUtilities.density, spareDp)
             .toInt().coerceIn(140, 280)
         val ringFrame = FrameLayout(context)
@@ -169,36 +158,13 @@ class HomeFragment : BaseFragment() {
         }
         column.addView(subtitle, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 32f, 4f, 32f, 0f))
         top.addView(column, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT.toFloat(), Gravity.CENTER, 0f, 0f, 0f, 0f))
-        // The pinned bar's shadow floats over the content, as in a chat.
-        pinnedShadow = View(context).apply { setBackgroundResource(TR.drawable.header_shadow) }
-        top.addView(pinnedShadow, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 3, Gravity.TOP))
         root.addView(top, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 0, 1f))
 
         // Lower part: the node card, then one rounded card of settings rows.
-        val nodeFrame = FrameLayout(context).apply {
+        nodeCard = SummaryCard(context).apply {
             setOnClickListener { scope?.let { s -> showNodesSheet(s) { s.launch { reload() } } } }
         }
-        nodeLabel = TextView(context).apply {
-            text = context.getString(R.string.cmhr_current_node)
-            setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f)
-        }
-        nodeFrame.addView(nodeLabel, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT.toFloat(), Gravity.START or Gravity.TOP, 16f, 11f, 0f, 0f))
-        nodeName = TextView(context).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17f)
-            typeface = AndroidUtilities.bold()
-            isSingleLine = true
-            ellipsize = TextUtils.TruncateAt.END
-        }
-        nodeFrame.addView(nodeName, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT.toFloat(), Gravity.START or Gravity.TOP, 16f, 32f, 110f, 0f))
-        nodeDelay = TextView(context).apply { setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f) }
-        nodeFrame.addView(nodeDelay, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT.toFloat(), Gravity.END or Gravity.CENTER_VERTICAL, 0f, 0f, 40f, 0f))
-        nodeArrow = ImageView(context).apply {
-            setImageResource(TR.drawable.msg_arrowright)
-            scaleType = ImageView.ScaleType.CENTER
-        }
-        nodeFrame.addView(nodeArrow, LayoutHelper.createFrame(24, 24f, Gravity.END or Gravity.CENTER_VERTICAL, 0f, 0f, 12f, 0f))
-        nodeCard = nodeFrame
-        root.addView(nodeFrame, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 68, 16f, 0f, 16f, 12f))
+        root.addView(nodeCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 68, 16f, 0f, 16f, 12f))
 
         val rows = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -214,7 +180,14 @@ class HomeFragment : BaseFragment() {
             presentFragment(if (cmhr.isActivated) SubscriptionFragment() else InviteFragment.create(replace = false))
         }
         card = rows
-        root.addView(rows, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 0f, 16f, 24f))
+        root.addView(rows, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 16f, 0f, 16f, 0f))
+
+        // Announcement in its own card at the bottom; tap reads it in full.
+        announcementCard = SummaryCard(context).apply {
+            setOnClickListener { announcement?.let { openAnnouncement(it) } }
+        }
+        root.addView(announcementCard, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 68, 16f, 12f, 16f, 0f))
+        root.setPadding(0, 0, 0, AndroidUtilities.dp(24f))
 
         fragmentView = root
         setUpDrawer(context)
@@ -235,6 +208,11 @@ class HomeFragment : BaseFragment() {
             invitePrompted = true
             // First launch: open activation once; the button offers it again later.
             AndroidUtilities.runOnUIThread({ presentFragment(InviteFragment.create(replace = false)) }, 300)
+        }
+        if (!appListRequested) {
+            // Once per launch, so per-app proxy can list apps on ROMs that gate the list.
+            appListRequested = true
+            parentActivity?.requestAppListPermission(REQUEST_APP_LIST)
         }
     }
 
@@ -289,7 +267,6 @@ class HomeFragment : BaseFragment() {
         nodes = engine.nodes()
         selectedId = engine.selectedNodeId()
         routing = engine.routingMode()
-        perApp = engine.perAppProxy()
         render()
     }
 
@@ -299,7 +276,7 @@ class HomeFragment : BaseFragment() {
         scope?.launch { engine.setRoutingMode(mode) }
     }
 
-    /** A new or edited announcement opens once; the pinned bar reopens it. */
+    /** A new or edited announcement opens once; the announcement card reopens it. */
     private fun loadAnnouncement() {
         if (announcementJob?.isActive == true) return
         announcementJob = scope?.launch {
@@ -315,7 +292,10 @@ class HomeFragment : BaseFragment() {
     }
 
     private fun openAnnouncement(item: Announcement) {
-        showAnnouncementSheet(item) { cmhr.markRead(item) }
+        showAnnouncementSheet(item) {
+            cmhr.markRead(item)
+            render()
+        }
     }
 
     private fun checkAccess() {
@@ -338,8 +318,8 @@ class HomeFragment : BaseFragment() {
         when {
             !cmhr.subscriptionEnabled && nodes.isEmpty() -> Unit
             !cmhr.isActivated && cmhr.subscriptionEnabled -> presentFragment(InviteFragment.create(replace = false))
-            engineState is EngineState.Running || engineState is EngineState.Starting ->
-                scope?.launch { engine.stop() }
+            connecting || engineState is EngineState.Starting -> cancelConnect()
+            engineState is EngineState.Running -> scope?.launch { engine.stop() }
             else -> connect()
         }
     }
@@ -348,8 +328,10 @@ class HomeFragment : BaseFragment() {
         val activity = parentActivity ?: return
         if (connecting) return
         connecting = true
+        stopWhenUp = false
         render()
-        scope?.launch {
+        startTimeout()
+        connectJob = scope?.launch {
             val ready = if (cmhr.isActivated) {
                 runCatching { cmhr.ensureReadyForConnection() }
                     .onFailure { error ->
@@ -367,18 +349,47 @@ class HomeFragment : BaseFragment() {
                 else -> {
                     requestNotifications(activity)
                     val prepare = engine.prepareIntent(activity)
-                    if (prepare != null) startActivityForResult(prepare, REQUEST_VPN) else engine.start()
+                    if (prepare != null) {
+                        // The system VPN prompt waits on the user; the timeout restarts after it.
+                        timeoutJob?.cancel()
+                        startActivityForResult(prepare, REQUEST_VPN)
+                    } else {
+                        engine.start()
+                    }
                     return@launch
                 }
             }
+            timeoutJob?.cancel()
             connecting = false
             reload()
         }
     }
 
+    /** Gives up when the tunnel is not up [CONNECT_TIMEOUT_MS] after the tap. */
+    private fun startTimeout() {
+        timeoutJob?.cancel()
+        timeoutJob = scope?.launch {
+            delay(CONNECT_TIMEOUT_MS)
+            if (engineState is EngineState.Running) return@launch
+            cancelConnect()
+            parentActivity?.let { it.toast(it.getString(R.string.cmhr_connect_timeout)) }
+        }
+    }
+
+    /** A tap while connecting, or the timeout: drop the pending work and stop the engine. */
+    private fun cancelConnect() {
+        timeoutJob?.cancel()
+        connectJob?.cancel()
+        connecting = false
+        stopWhenUp = true
+        render()
+        scope?.launch { engine.stop() }
+    }
+
     override fun onActivityResultFragment(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode != REQUEST_VPN) return
         if (resultCode == Activity.RESULT_OK) {
+            startTimeout()
             scope?.launch { engine.start() }
         } else {
             connecting = false
@@ -396,7 +407,7 @@ class HomeFragment : BaseFragment() {
     }
 
     private fun heroState(context: Context): HeroState {
-        val nodeName = nodes.firstOrNull { it.id == selectedId }?.name.orEmpty()
+        val nodeName = nodes.firstOrNull { it.id == selectedId }?.let { NodeDisplay.name(it.name, it.name, nodes.map { n -> n.name }) }.orEmpty()
         return when {
             !cmhr.subscriptionEnabled && nodes.isEmpty() -> HeroState(
                 context.getString(R.string.cmhr_state_not_configured),
@@ -414,7 +425,7 @@ class HomeFragment : BaseFragment() {
                 Theme.key_windowBackgroundWhiteGreenText2, busy = false, filled = true,
             )
             engineState is EngineState.Starting || connecting -> HeroState(
-                context.getString(R.string.cmhr_state_starting), nodeName,
+                context.getString(R.string.cmhr_state_starting), context.getString(R.string.cmhr_tap_to_cancel),
                 Theme.key_featuredStickers_addButton, busy = true, filled = true,
             )
             engineState is EngineState.Error -> HeroState(
@@ -458,15 +469,15 @@ class HomeFragment : BaseFragment() {
         }
 
         val item = announcement
-        val pinnedVisible = item != null && !cmhr.isHidden(item)
-        pinned?.apply {
-            visibility = if (pinnedVisible) View.VISIBLE else View.GONE
+        announcementCard?.apply {
+            visibility = if (item != null) View.VISIBLE else View.GONE
             if (item != null) bind(
-                item.title.ifBlank { context.getString(R.string.cmhr_pinned_announcement) },
-                item.content.trim().lineSequence().firstOrNull { it.isNotBlank() }.orEmpty(),
+                context.getString(R.string.cmhr_section_announcement),
+                item.title.ifBlank { item.content.trim().lineSequence().firstOrNull { it.isNotBlank() }.orEmpty() },
+                if (cmhr.isUnread(item)) context.getString(R.string.cmhr_unread) else "",
+                Theme.key_windowBackgroundWhiteBlueText4,
             )
         }
-        pinnedShadow?.visibility = if (pinnedVisible) View.VISIBLE else View.GONE
 
         val hasNodes = cmhr.isActivated || nodes.isNotEmpty()
         card?.apply {
@@ -476,26 +487,15 @@ class HomeFragment : BaseFragment() {
         val selected = nodes.firstOrNull { it.id == selectedId }
         nodeCard?.apply {
             visibility = if (hasNodes) View.VISIBLE else View.GONE
-            background = Theme.createRoundRectDrawable(AndroidUtilities.dp(12f), Theme.getColor(Theme.key_windowBackgroundGray))
+            bind(
+                context.getString(R.string.cmhr_current_node),
+                selected?.let { NodeDisplay.name(it.name, it.name, nodes.map { n -> n.name }) }
+                    ?: context.getString(R.string.cmhr_node_unselected),
+                context.delayText(selected?.delayMs), delayColorKey(selected?.delayMs),
+            )
         }
-        nodeLabel?.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText2))
-        nodeName?.apply {
-            text = selected?.let { NodeDisplay.name(it.name, it.name, nodes.map { n -> n.name }) }
-                ?: context.getString(R.string.cmhr_node_unselected)
-            setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
-        }
-        nodeDelay?.apply {
-            text = context.delayText(selected?.delayMs)
-            setTextColor(Theme.getColor(delayColorKey(selected?.delayMs)))
-        }
-        nodeArrow?.setColorFilter(Theme.getColor(Theme.key_windowBackgroundWhiteGrayIcon))
         routingRow?.bindRow(context.getString(R.string.cmhr_routing), context.getString(routing.title()), TR.drawable.msg_language, divider = true)
-        perAppRow?.bindRow(
-            context.getString(R.string.cmhr_per_app),
-            if (perApp.mode == PerAppMode.OFF) context.getString(perApp.mode.title())
-            else context.getString(R.string.cmhr_per_app_count, context.getString(perApp.mode.title()), perApp.packages.size),
-            TR.drawable.msg_folders, divider = cmhr.subscriptionEnabled,
-        )
+        perAppRow?.bindRow(context.getString(R.string.cmhr_per_app), "", TR.drawable.msg_folders, divider = cmhr.subscriptionEnabled)
         subscriptionRow?.apply {
             visibility = if (cmhr.subscriptionEnabled) View.VISIBLE else View.GONE
             bindRow(context.getString(R.string.cmhr_section_subscription), context.subscriptionSummary(), TR.drawable.msg_calendar2, divider = false)
@@ -548,5 +548,7 @@ class HomeFragment : BaseFragment() {
         const val DRAWER_ABOUT = 3
         const val REQUEST_VPN = 1001
         const val REQUEST_NOTIFICATIONS = 1002
+        const val REQUEST_APP_LIST = 1003
+        const val CONNECT_TIMEOUT_MS = 10_000L
     }
 }

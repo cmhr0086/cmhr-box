@@ -39,8 +39,20 @@ android {
         buildConfig = true
     }
 
+    // Release signing from the git-ignored local.properties only; without it the release APK is unsigned.
+    val signingStore = endpointProperties.getProperty("CMHR_SIGNING_STORE_FILE")
+    val releaseSigning = signingStore?.let {
+        signingConfigs.create("release") {
+            storeFile = file(it)
+            storePassword = endpointProperties.getProperty("CMHR_SIGNING_STORE_PASSWORD")
+            keyAlias = endpointProperties.getProperty("CMHR_SIGNING_KEY_ALIAS")
+            keyPassword = endpointProperties.getProperty("CMHR_SIGNING_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = releaseSigning
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -65,6 +77,9 @@ android {
     // Moved from :v2rayng (library modules have no locale config); keep in sync with upstream.
     androidResources {
         generateLocaleConfig = true
+        // AGP's default ignore list plus tgui's emoji sprites (~5 MB): our text uses system emoji,
+        // and tgui's Emoji loader tolerates the missing files.
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:<dir>emoji"
         localeFilters += listOf(
             "en",
             "zh-rCN",

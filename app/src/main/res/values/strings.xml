@@ -111,8 +111,9 @@
     <string name="cmhr_drawer_status_unlimited">Active · %s</string>
     <string name="cmhr_got_it">Got it</string>
     <string name="cmhr_no_announcement">No announcement</string>
-    <string name="cmhr_pinned_announcement">Pinned announcement</string>
-    <string name="cmhr_hide_announcement">Hide pinned announcement</string>
+    <string name="cmhr_unread">Unread</string>
+    <string name="cmhr_tap_to_cancel">Tap to cancel</string>
+    <string name="cmhr_connect_timeout">Connection timed out and was stopped</string>
     <string name="cmhr_summary_traffic_left">%s left</string>
     <plurals name="cmhr_summary_days">
         <item quantity="one">%d day</item>

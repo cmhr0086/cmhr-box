@@ -108,8 +108,9 @@
     <string name="cmhr_drawer_status_unlimited">已激活 · %s</string>
     <string name="cmhr_got_it">知道了</string>
     <string name="cmhr_no_announcement">暂无公告</string>
-    <string name="cmhr_pinned_announcement">置顶公告</string>
-    <string name="cmhr_hide_announcement">隐藏置顶公告</string>
+    <string name="cmhr_unread">未读</string>
+    <string name="cmhr_tap_to_cancel">轻触取消</string>
+    <string name="cmhr_connect_timeout">连接超时，已停止</string>
     <string name="cmhr_summary_traffic_left">%s 可用</string>
     <plurals name="cmhr_summary_days">
         <item quantity="other">%d 天</item>

@@ -21,6 +21,7 @@ class SubscriptionFragment : ListFragment() {
     private var expiry = SubscriptionExpiryProgress.State(SubscriptionExpiryProgress.Kind.UNKNOWN)
     private var updatedAt = 0L
     private var refreshing = false
+    private var progress: AlertDialog? = null
 
     override fun title(context: Context): CharSequence = context.getString(R.string.cmhr_section_subscription)
 
@@ -40,7 +41,7 @@ class SubscriptionFragment : ListFragment() {
         val context = parentActivity ?: return
         if (!cmhr.isActivated) {
             rows += Row.Shadow
-            rows += Row.Custom(TYPE_ACTION, ID_INVITE, Action(TR.drawable.msg_link, context.getString(R.string.cmhr_invite_submit), null, false, Theme.key_windowBackgroundWhiteBlueText4))
+            rows += Row.Custom(TYPE_ACTION, ID_INVITE, Action(TR.drawable.msg_link, context.getString(R.string.cmhr_invite_submit), null, Theme.key_windowBackgroundWhiteBlueText4, Theme.key_windowBackgroundWhiteBlueText4))
             rows += Row.Info(context.getString(R.string.cmhr_invite_description))
             return
         }
@@ -50,16 +51,16 @@ class SubscriptionFragment : ListFragment() {
         rows += Row.Shadow
         rows += Row.Custom(
             TYPE_ACTION, ID_REFRESH,
-            Action(TR.drawable.msg_retry, context.getString(R.string.cmhr_refresh_subscription), context.formatUpdatedAt(updatedAt), refreshing, Theme.key_windowBackgroundWhiteBlueText4),
+            Action(TR.drawable.msg_retry, context.getString(R.string.cmhr_refresh_subscription), context.formatUpdatedAt(updatedAt), Theme.key_windowBackgroundWhiteBlackText, Theme.key_windowBackgroundWhiteGrayIcon),
         )
         rows += Row.Custom(
             TYPE_ACTION, ID_INVITE,
-            Action(TR.drawable.msg_link, context.getString(R.string.cmhr_change_invite), null, false, Theme.key_text_RedRegular),
+            Action(TR.drawable.msg_link, context.getString(R.string.cmhr_change_invite), null, Theme.key_text_RedRegular, Theme.key_text_RedRegular),
         )
         rows += Row.Info(context.getString(R.string.cmhr_change_invite_confirm))
     }
 
-    private data class Action(val icon: Int, val text: String, val value: String?, val loading: Boolean, val textKey: Int)
+    private data class Action(val icon: Int, val text: String, val value: String?, val textKey: Int, val iconKey: Int)
 
     override fun createCustomCell(context: Context, type: Int): View =
         if (type == TYPE_USAGE) UsageCell(context) else ActionCell(context)
@@ -67,7 +68,7 @@ class SubscriptionFragment : ListFragment() {
     override fun bindCustomCell(view: View, row: Row.Custom, divider: Boolean) {
         when (val payload = row.payload) {
             is UsagePayload -> (view as UsageCell).bind(payload.title, payload.value, payload.fraction, payload.warn, divider)
-            is Action -> (view as ActionCell).bind(payload.icon, payload.text, payload.value, payload.loading, payload.textKey, divider)
+            is Action -> (view as ActionCell).bind(payload.icon, payload.text, payload.value, payload.textKey, payload.iconKey, divider)
         }
     }
 
@@ -79,9 +80,11 @@ class SubscriptionFragment : ListFragment() {
     }
 
     private fun refresh() {
+        val activity = parentActivity ?: return
         if (refreshing) return
         refreshing = true
-        updateRows()
+        // Full-screen spinner, as Telegram shows for blocking requests.
+        progress = AlertDialog(activity, AlertDialog.ALERT_TYPE_SPINNER).also { showDialog(it) }
         scope?.launch {
             val context = parentActivity
             runCatching { cmhr.refresh() }
@@ -96,6 +99,8 @@ class SubscriptionFragment : ListFragment() {
                     else context?.toast(context.describeError(error))
                 }
             refreshing = false
+            progress?.dismiss()
+            progress = null
             reload()
         }
     }
@@ -103,7 +108,9 @@ class SubscriptionFragment : ListFragment() {
     /** Replacing the invite is destructive for the current node set: red confirm button. */
     private fun confirmChangeInvite() {
         val context = parentActivity ?: return
+        // Telegram's illustrated alert (coloured header with a Lottie icon), as on its archive prompts.
         val dialog = AlertDialog.Builder(context)
+            .setTopAnimation(TR.raw.linkbroken, 72, false, Theme.getColor(Theme.key_dialogTopBackground))
             .setTitle(context.getString(R.string.cmhr_change_invite))
             .setMessage(context.getString(R.string.cmhr_change_invite_confirm))
             .setPositiveButton(context.getString(R.string.cmhr_change_invite_action)) { _, _ ->

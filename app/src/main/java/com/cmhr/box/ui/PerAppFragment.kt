@@ -45,10 +45,18 @@ class PerAppFragment : ListFragment() {
             mode = current.mode
             selected.addAll(current.packages)
             updateRows()
+        }
+        parentActivity?.requestAppListPermission(REQUEST_APP_LIST)
+        return created
+    }
+
+    // Also runs after the permission prompt closes, so a grant shows the full list at once.
+    override fun onResume() {
+        super.onResume()
+        scope?.launch {
             apps = loadApps()
             updateRows()
         }
-        return created
     }
 
     override fun onFragmentDestroy() {
@@ -149,6 +157,7 @@ class PerAppFragment : ListFragment() {
 
     private companion object {
         const val MENU_SEARCH = 1
+        const val REQUEST_APP_LIST = 1003
         const val TYPE_CHOICE = CUSTOM_TYPE
         const val TYPE_APP = CUSTOM_TYPE + 1
         const val ID_SHOW_SYSTEM = 1

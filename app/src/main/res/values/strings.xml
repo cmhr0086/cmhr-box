@@ -48,6 +48,12 @@
     <string name="cmhr_nodes_hint">Switching nodes while connected reconnects automatically. Latency is only an estimate.</string>
 
     <!-- Invite -->
+    <string name="cmhr_welcome_title">Welcome to CMHR-Box</string>
+    <string name="cmhr_welcome_description">One invite code, one tap to connect.</string>
+    <string name="cmhr_welcome_start">Get started</string>
+    <string name="cmhr_skip">Skip</string>
+    <string name="cmhr_skip_invite_title">Skip the invite code?</string>
+    <string name="cmhr_skip_invite_message">You can\'t connect until you enter one. You can do that later from the home screen or Manage subscription.</string>
     <string name="cmhr_invite_title">Invite code</string>
     <string name="cmhr_invite_headline">Activate CMHR-Box</string>
     <string name="cmhr_invite_description">Enter your invite code to get your nodes and start.</string>
@@ -109,7 +115,8 @@
     <string name="cmhr_drawer_announcement">Announcement</string>
     <string name="cmhr_drawer_status_active">%1$s · %2$s</string>
     <string name="cmhr_drawer_status_unlimited">Active · %s</string>
-    <string name="cmhr_got_it">Got it</string>
+    <string name="cmhr_confirm">OK</string>
+    <string name="cmhr_confirm_countdown">OK (%d)</string>
     <string name="cmhr_loading">Loading…</string>
     <string name="cmhr_announcement_failed">Couldn\'t load, tap to retry</string>
     <string name="cmhr_no_announcement">No announcement</string>

@@ -24,7 +24,7 @@ class CmhrServiceTest {
         override var inviteCode: String? = null
         override var subscriptionUserinfo: String? = null
         override var subscriptionUpdatedAt: Long = 0L
-        override var expiryReference: String? = null
+        override var onboardingDone = false
         override var seenAnnouncement: String? = null
         override var cachedAnnouncement: String? = null
     }
@@ -104,8 +104,22 @@ class CmhrServiceTest {
         assertEquals("upload=1; download=1; total=100; expire=0", store.subscriptionUserinfo)
         assertEquals(now, store.subscriptionUpdatedAt)
         assertEquals(listOf("HK", "JP"), engine.nodes.map { it.name })
-        assertFalse(listOf(store.inviteCode, store.subscriptionUserinfo, store.expiryReference)
+        assertFalse(listOf(store.inviteCode, store.subscriptionUserinfo)
             .any { it?.contains("config.example.invalid") == true })
+    }
+
+    @Test fun onboardingRunsOnceAndOnlyForAnUnactivatedInstall() {
+        assertTrue(service().needsOnboarding)
+        service().completeOnboarding()
+        assertFalse(service().needsOnboarding)
+        store.clearSubscription()
+        store.inviteCode = null
+        assertFalse(service().needsOnboarding)
+    }
+
+    @Test fun activatedInstallSkipsOnboardingEvenWithoutTheFlag() {
+        store.inviteCode = "code-1"
+        assertFalse(service().needsOnboarding)
     }
 
     @Test fun everyRefreshPostsTheInviteAgainAndUsesTheLatestUrl() = runBlocking {

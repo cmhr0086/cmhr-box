@@ -44,14 +44,16 @@ class CmhrService(
 
     fun lastUpdatedAt(): Long = store.subscriptionUpdatedAt
 
-    /** Days/percent left; keeps the period start across refreshes until the deadline changes. */
-    fun expiryProgress(): SubscriptionExpiryProgress.State {
+    fun validity(): SubscriptionValidity.State {
         val usage = usage()
-        val state = SubscriptionExpiryProgress.calculate(
-            usage.expire, usage.expiryKnown, nowSeconds(), store.expiryReference
-        )
-        state.reference?.let { store.expiryReference = it }
-        return state
+        return SubscriptionValidity.calculate(usage.expire, usage.expiryKnown, nowSeconds())
+    }
+
+    /** First run only: an activated or previously onboarded install goes straight to the home screen. */
+    val needsOnboarding: Boolean get() = subscriptionEnabled && !isActivated && !store.onboardingDone
+
+    fun completeOnboarding() {
+        store.onboardingDone = true
     }
 
     val announcementEnabled: Boolean get() = config.announcementEndpoint.isNotBlank()

@@ -2,6 +2,7 @@ package com.cmhr.box.ui
 
 import android.Manifest
 import android.app.Activity
+import android.app.Dialog
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -64,8 +65,6 @@ class HomeFragment : BaseFragment() {
     private var connecting = false
     private var accessJob: Job? = null
     private var announcementJob: Job? = null
-    private var invitePrompted = false
-    private var appListRequested = false
     private var connectJob: Job? = null
     private var timeoutJob: Job? = null
     private var stopWhenUp = false
@@ -84,6 +83,8 @@ class HomeFragment : BaseFragment() {
     private var subscriptionRow: TextCell? = null
 
     override fun onFragmentCreate(): Boolean {
+        // Reaching this screen is what ends the first-run flow, however it ended.
+        cmhr.completeOnboarding()
         val newScope = MainScope()
         scope = newScope
         newScope.launch {
@@ -210,16 +211,17 @@ class HomeFragment : BaseFragment() {
         }
         loadAnnouncement()
         checkAccess()
-        if (cmhr.subscriptionEnabled && !cmhr.isActivated && !invitePrompted) {
-            invitePrompted = true
-            // First launch: open activation once; the button offers it again later.
-            AndroidUtilities.runOnUIThread({ presentFragment(InviteFragment.create(replace = false)) }, 300)
-        }
-        if (!appListRequested) {
-            // Once per launch, so per-app proxy can list apps on ROMs that gate the list.
-            appListRequested = true
-            parentActivity?.requestAppListPermission(REQUEST_APP_LIST)
-        }
+    }
+
+    // Both can be the moment a sheet held back below finally has the screen to itself.
+    override fun onTransitionAnimationEnd(isOpen: Boolean, backward: Boolean) {
+        super.onTransitionAnimationEnd(isOpen, backward)
+        if (isOpen) openUnreadAnnouncement()
+    }
+
+    override fun onDialogDismiss(dialog: Dialog?) {
+        super.onDialogDismiss(dialog)
+        openUnreadAnnouncement()
     }
 
     override fun onPause() {
@@ -292,19 +294,23 @@ class HomeFragment : BaseFragment() {
             val item = (result as? AnnouncementResult.Shown)?.item
             if (result !is AnnouncementResult.Failed) announcement = item
             render()
-            if (item != null && cmhr.isUnread(item) && !announcementShown) {
-                announcementShown = true
-                openAnnouncement(item)
-            }
+            openUnreadAnnouncement()
         }
     }
 
-    private fun openAnnouncement(item: Announcement) {
-        showAnnouncementSheet(item) {
+    /** Waits until this screen is on top with nothing else open; only one thing pops up at a time. */
+    private fun openUnreadAnnouncement() {
+        val item = announcement ?: return
+        if (announcementShown || announcementResult == null || !cmhr.isUnread(item)) return
+        if (isPaused || visibleDialog != null) return
+        announcementShown = openAnnouncement(item, lock = true)
+    }
+
+    private fun openAnnouncement(item: Announcement, lock: Boolean = false): Boolean =
+        showAnnouncementSheet(item, lock) {
             cmhr.markRead(item)
             render()
         }
-    }
 
     private fun checkAccess() {
         if (accessJob?.isActive == true) return
@@ -548,7 +554,6 @@ class HomeFragment : BaseFragment() {
         const val DRAWER_ABOUT = 3
         const val REQUEST_VPN = 1001
         const val REQUEST_NOTIFICATIONS = 1002
-        const val REQUEST_APP_LIST = 1003
         const val CONNECT_TIMEOUT_MS = 10_000L
     }
 }

@@ -12,6 +12,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.core.graphics.ColorUtils
 import com.cmhr.box.AppGraph
 import com.cmhr.box.R
 import com.cmhr.box.core.CmhrException
@@ -21,6 +22,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import org.telegram.messenger.AndroidUtilities
 import org.telegram.ui.ActionBar.ActionBar
+import org.telegram.ui.ActionBar.AlertDialog
 import org.telegram.ui.ActionBar.BaseFragment
 import org.telegram.ui.ActionBar.Theme
 import org.telegram.ui.ActionBar.ThemeDescription
@@ -35,6 +37,8 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
 
     private var scope: CoroutineScope? = null
     private val replace get() = arguments?.getBoolean(ARG_REPLACE) == true
+    /** Second step of the first run: nothing to go back to, and it can be skipped. */
+    private val onboarding get() = arguments?.getBoolean(ARG_ONBOARDING) == true
 
     private var duck: RLottieImageView? = null
     private var headline: TextView? = null
@@ -57,12 +61,20 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
     }
 
     override fun createView(context: Context): View {
-        actionBar.setBackButtonImage(TR.drawable.ic_ab_back)
-        actionBar.setAllowOverlayTitle(true)
-        actionBar.setTitle(context.getString(R.string.cmhr_invite_title))
+        if (onboarding) {
+            actionBar.setCastShadows(false)
+            actionBar.createMenu().addItem(ID_SKIP, context.getString(R.string.cmhr_skip))
+        } else {
+            actionBar.setBackButtonImage(TR.drawable.ic_ab_back)
+            actionBar.setAllowOverlayTitle(true)
+            actionBar.setTitle(context.getString(R.string.cmhr_invite_title))
+        }
         actionBar.setActionBarMenuOnItemClick(object : ActionBar.ActionBarMenuOnItemClick() {
             override fun onItemClick(id: Int) {
-                if (id == -1) finishFragment()
+                when (id) {
+                    -1 -> finishFragment()
+                    ID_SKIP -> confirmSkip()
+                }
             }
         })
 
@@ -146,7 +158,28 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
     override fun onResume() {
         super.onResume()
         duck?.playAnimation()
-        field?.let { AndroidUtilities.showKeyboard(it.apply { requestFocus() }) }
+        // The first run opens on the whole page; the keyboard waits for a tap on the field.
+        if (!onboarding) field?.let { AndroidUtilities.showKeyboard(it.apply { requestFocus() }) }
+    }
+
+    override fun isLightStatusBar(): Boolean =
+        if (onboarding) ColorUtils.calculateLuminance(Theme.getColor(Theme.key_windowBackgroundWhite)) > 0.7
+        else super.isLightStatusBar()
+
+    private fun confirmSkip() {
+        val context = parentActivity ?: return
+        val dialog = AlertDialog.Builder(context)
+            .setTitle(context.getString(R.string.cmhr_skip_invite_title))
+            .setMessage(context.getString(R.string.cmhr_skip_invite_message))
+            .setPositiveButton(context.getString(R.string.cmhr_skip)) { _, _ -> leaveOnboarding() }
+            .setNegativeButton(context.getString(R.string.cmhr_cancel), null)
+            .create()
+        showDialog(dialog)
+    }
+
+    private fun leaveOnboarding() {
+        field?.let { AndroidUtilities.hideKeyboard(it) }
+        presentFragment(HomeFragment(), true)
     }
 
     private fun submit() {
@@ -160,8 +193,12 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
             runCatching { AppGraph.cmhr.activate(code) }
                 .onSuccess { status ->
                     context?.toast(context.getString(R.string.cmhr_invite_activated, status.nodeCount))
-                    field?.let { AndroidUtilities.hideKeyboard(it) }
-                    finishFragment()
+                    if (onboarding) {
+                        leaveOnboarding()
+                    } else {
+                        field?.let { AndroidUtilities.hideKeyboard(it) }
+                        finishFragment()
+                    }
                 }
                 .onFailure { e ->
                     submitting = false
@@ -186,6 +223,13 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
 
     private fun applyColors() {
         fragmentView?.setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+        if (onboarding) {
+            actionBar?.apply {
+                setBackgroundColor(Theme.getColor(Theme.key_windowBackgroundWhite))
+                setItemsColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlueText4), false)
+                setItemsBackgroundColor(Theme.getColor(Theme.key_listSelector), false)
+            }
+        }
         headline?.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText))
         description?.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteGrayText6))
         error?.setTextColor(Theme.getColor(Theme.key_text_RedRegular))
@@ -214,6 +258,12 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
         val recolor = object : ThemeDescription.ThemeDescriptionDelegate {
             override fun didSetColor() = applyColors()
         }
+        if (onboarding) {
+            return arrayListOf(
+                ThemeDescription(null, 0, null, null, null, recolor, Theme.key_windowBackgroundWhite),
+                ThemeDescription(null, 0, null, null, null, recolor, Theme.key_windowBackgroundWhiteBlackText),
+            )
+        }
         return arrayListOf(
             ThemeDescription(actionBar, ThemeDescription.FLAG_BACKGROUND, null, null, null, null, Theme.key_actionBarDefault),
             ThemeDescription(actionBar, ThemeDescription.FLAG_AB_ITEMSCOLOR, null, null, null, null, Theme.key_actionBarDefaultIcon),
@@ -226,6 +276,10 @@ class InviteFragment(args: Bundle?) : BaseFragment(args) {
 
     companion object {
         private const val ARG_REPLACE = "replace"
+        private const val ARG_ONBOARDING = "onboarding"
+        private const val ID_SKIP = 1
+
+        fun createForOnboarding() = InviteFragment(Bundle().apply { putBoolean(ARG_ONBOARDING, true) })
 
         fun create(replace: Boolean) = InviteFragment(Bundle().apply { putBoolean(ARG_REPLACE, replace) })
     }

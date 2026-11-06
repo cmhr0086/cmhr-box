@@ -41,10 +41,27 @@ private fun sheetButton(context: Context, text: CharSequence, onClick: () -> Uni
     setOnClickListener { onClick() }
 }
 
-/** Announcement in a custom-view sheet; "Got it" marks it read. */
-fun BaseFragment.showAnnouncementSheet(item: Announcement, onRead: () -> Unit) {
-    val context = parentActivity ?: return
-    val sheet = BottomSheet(context, false)
+private const val ANNOUNCEMENT_LOCK_SECONDS = 5
+
+/** While locked, swipe, outside tap and back are ignored too; only the button can close it. */
+private class AnnouncementSheet(context: Context) : BottomSheet(context, false) {
+    var locked = false
+
+    override fun canDismissWithSwipe() = !locked && super.canDismissWithSwipe()
+    override fun canDismissWithTouchOutside() = !locked && super.canDismissWithTouchOutside()
+
+    override fun onBackPressed() {
+        if (!locked) super.onBackPressed()
+    }
+}
+
+/**
+ * Announcement in a custom-view sheet; the button marks it read. [lock] holds the sheet open for
+ * a few seconds, for the unread copy that opens by itself. Returns false if the sheet could not be shown.
+ */
+fun BaseFragment.showAnnouncementSheet(item: Announcement, lock: Boolean, onRead: () -> Unit): Boolean {
+    val context = parentActivity ?: return false
+    val sheet = AnnouncementSheet(context)
     val layout = LinearLayout(context).apply {
         orientation = LinearLayout.VERTICAL
         setPadding(AndroidUtilities.dp(20f), AndroidUtilities.dp(20f), AndroidUtilities.dp(20f), AndroidUtilities.dp(16f))
@@ -73,12 +90,31 @@ fun BaseFragment.showAnnouncementSheet(item: Announcement, onRead: () -> Unit) {
     }
     scroll.addView(body)
     layout.addView(scroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 0f, 14f, 0f, 18f))
-    layout.addView(sheetButton(context, context.getString(R.string.cmhr_got_it)) {
+    val confirm = sheetButton(context, context.getString(R.string.cmhr_confirm)) {
         onRead()
         sheet.dismiss()
-    }, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48))
+    }
+    layout.addView(confirm, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 48))
     sheet.setCustomView(layout)
-    showDialog(sheet)
+    if (showDialog(sheet) == null) return false
+    if (lock) {
+        sheet.locked = true
+        confirm.isEnabled = false
+        confirm.alpha = 0.5f
+        fun tick(seconds: Int) {
+            if (seconds > 0) {
+                confirm.text = context.getString(R.string.cmhr_confirm_countdown, seconds)
+                AndroidUtilities.runOnUIThread({ tick(seconds - 1) }, 1000)
+            } else {
+                sheet.locked = false
+                confirm.isEnabled = true
+                confirm.alpha = 1f
+                confirm.text = context.getString(R.string.cmhr_confirm)
+            }
+        }
+        tick(ANNOUNCEMENT_LOCK_SECONDS)
+    }
+    return true
 }
 
 /** Node picker sheet: tap to select, "Test" measures every node in place. */

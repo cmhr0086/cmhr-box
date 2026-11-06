@@ -45,6 +45,12 @@
     <string name="cmhr_nodes_hint">连接中切换节点会自动重新连接。延迟仅供参考，以实际连接为准。</string>
 
     <!-- 邀请码 -->
+    <string name="cmhr_welcome_title">欢迎使用 CMHR-Box</string>
+    <string name="cmhr_welcome_description">一个邀请码，轻触即可连接。</string>
+    <string name="cmhr_welcome_start">开始使用</string>
+    <string name="cmhr_skip">跳过</string>
+    <string name="cmhr_skip_invite_title">跳过邀请码？</string>
+    <string name="cmhr_skip_invite_message">输入邀请码前无法连接。之后可以在主页或“订阅管理”中输入。</string>
     <string name="cmhr_invite_title">邀请码</string>
     <string name="cmhr_invite_headline">激活 CMHR-Box</string>
     <string name="cmhr_invite_description">输入邀请码，即可获取节点并开始使用。</string>
@@ -106,7 +112,8 @@
     <string name="cmhr_drawer_announcement">公告</string>
     <string name="cmhr_drawer_status_active">%1$s · %2$s</string>
     <string name="cmhr_drawer_status_unlimited">已激活 · %s</string>
-    <string name="cmhr_got_it">知道了</string>
+    <string name="cmhr_confirm">确定</string>
+    <string name="cmhr_confirm_countdown">确定（%d）</string>
     <string name="cmhr_loading">正在加载…</string>
     <string name="cmhr_announcement_failed">公告加载失败，轻触重试</string>
     <string name="cmhr_no_announcement">暂无公告</string>

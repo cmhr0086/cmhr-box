@@ -8,7 +8,9 @@ interface CmhrStore {
     var inviteCode: String?
     var subscriptionUserinfo: String?
     var subscriptionUpdatedAt: Long
-    var expiryReference: String?
+
+    /** Set once the first-run flow ended; never reset, so a removed subscription does not repeat it. */
+    var onboardingDone: Boolean
 
     /** Key of the last announcement the user acknowledged. */
     var seenAnnouncement: String?
@@ -19,7 +21,6 @@ interface CmhrStore {
     fun clearSubscription() {
         subscriptionUserinfo = null
         subscriptionUpdatedAt = 0L
-        expiryReference = null
     }
 }
 
@@ -40,9 +41,9 @@ class SharedPreferencesCmhrStore(context: Context) : CmhrStore {
         get() = prefs.getLong(KEY_UPDATED_AT, 0L)
         set(value) = prefs.edit().putLong(KEY_UPDATED_AT, value).apply()
 
-    override var expiryReference: String?
-        get() = prefs.getString(KEY_EXPIRY_REFERENCE, null)
-        set(value) = prefs.edit().putString(KEY_EXPIRY_REFERENCE, value).apply()
+    override var onboardingDone: Boolean
+        get() = prefs.getBoolean(KEY_ONBOARDING_DONE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ONBOARDING_DONE, value).apply()
 
     override var seenAnnouncement: String?
         get() = prefs.getString(KEY_SEEN_ANNOUNCEMENT, null)
@@ -56,7 +57,7 @@ class SharedPreferencesCmhrStore(context: Context) : CmhrStore {
         const val KEY_INVITE = "invite_code"
         const val KEY_USERINFO = "subscription_userinfo"
         const val KEY_UPDATED_AT = "subscription_updated_at"
-        const val KEY_EXPIRY_REFERENCE = "expiry_reference"
+        const val KEY_ONBOARDING_DONE = "onboarding_done"
         const val KEY_SEEN_ANNOUNCEMENT = "seen_announcement"
         const val KEY_CACHED_ANNOUNCEMENT = "cached_announcement"
     }

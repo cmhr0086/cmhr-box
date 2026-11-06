@@ -5,7 +5,7 @@ import android.view.View
 import com.cmhr.box.AppGraph
 import com.cmhr.box.R
 import com.cmhr.box.core.CmhrException
-import com.cmhr.box.core.SubscriptionExpiryProgress
+import com.cmhr.box.core.SubscriptionValidity
 import com.cmhr.box.core.SubscriptionStatus
 import com.cmhr.box.core.UsageInfo
 import kotlinx.coroutines.launch
@@ -18,7 +18,7 @@ class SubscriptionFragment : ListFragment() {
 
     private val cmhr get() = AppGraph.cmhr
     private var usage = UsageInfo()
-    private var expiry = SubscriptionExpiryProgress.State(SubscriptionExpiryProgress.Kind.UNKNOWN)
+    private var validity = SubscriptionValidity.State(SubscriptionValidity.Kind.UNKNOWN)
     private var updatedAt = 0L
     private var refreshing = false
     private var progress: AlertDialog? = null
@@ -32,7 +32,7 @@ class SubscriptionFragment : ListFragment() {
 
     private fun reload() {
         usage = cmhr.usage()
-        expiry = cmhr.expiryProgress()
+        validity = cmhr.validity()
         updatedAt = cmhr.lastUpdatedAt()
         updateRows()
     }
@@ -143,16 +143,15 @@ class SubscriptionFragment : ListFragment() {
 
     private fun validityPayload(context: Context): UsagePayload {
         val title = context.getString(R.string.cmhr_validity)
-        return when (expiry.kind) {
-            SubscriptionExpiryProgress.Kind.UNKNOWN -> UsagePayload(title, context.getString(R.string.cmhr_validity_unknown), null, false)
-            SubscriptionExpiryProgress.Kind.UNLIMITED -> UsagePayload(title, context.getString(R.string.cmhr_validity_unlimited), null, false)
-            SubscriptionExpiryProgress.Kind.EXPIRED -> UsagePayload(title, context.getString(R.string.cmhr_validity_expired), 1f, true)
-            SubscriptionExpiryProgress.Kind.ACTIVE -> UsagePayload(
+        return when (validity.kind) {
+            SubscriptionValidity.Kind.UNKNOWN -> UsagePayload(title, context.getString(R.string.cmhr_validity_unknown), null, false)
+            SubscriptionValidity.Kind.UNLIMITED -> UsagePayload(title, context.getString(R.string.cmhr_validity_unlimited), null, false)
+            SubscriptionValidity.Kind.EXPIRED -> UsagePayload(title, context.getString(R.string.cmhr_validity_expired), null, true)
+            SubscriptionValidity.Kind.ACTIVE -> UsagePayload(
                 title,
-                context.resources.getQuantityString(R.plurals.cmhr_validity_days, expiry.daysRemaining, expiry.daysRemaining),
-                // Elapsed share, so this bar fills up like the traffic bar above it.
-                1f - expiry.percentRemaining / 100f,
-                warn = expiry.daysRemaining <= 3,
+                context.resources.getQuantityString(R.plurals.cmhr_validity_days, validity.daysRemaining, validity.daysRemaining),
+                null,
+                warn = validity.daysRemaining <= 3,
             )
         }
     }
